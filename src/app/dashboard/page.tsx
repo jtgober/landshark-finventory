@@ -5,20 +5,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDistance, formatDuration } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
+import { isValidRange, PRIMARY_RANGES, rangeLabel, rangeWindow } from "@/lib/dateRange";
 import KudosButton from "@/components/KudosButton";
 import NavBar from "@/components/NavBar";
-
-const RANGE_DAYS: Record<string, number | null> = {
-  week: 7,
-  month: 30,
-  all: null,
-};
-
-const RANGE_LABELS: Record<string, string> = {
-  week: "This Week",
-  month: "This Month",
-  all: "All Time",
-};
 
 interface LeaderboardEntry {
   userId: string;
@@ -38,20 +27,29 @@ export default async function DashboardPage({
   if (!session?.user) redirect("/");
 
   const resolvedSearchParams = await searchParams;
+  const currentYear = new Date().getFullYear();
   const range =
-    resolvedSearchParams.range && RANGE_DAYS[resolvedSearchParams.range] !== undefined
+    resolvedSearchParams.range && isValidRange(resolvedSearchParams.range, currentYear)
       ? resolvedSearchParams.range
       : "week";
   const sport = SPORT_TABS.some((t) => t.key === resolvedSearchParams.sport) ? resolvedSearchParams.sport! : "total";
 
-  const days = RANGE_DAYS[range];
-  const since = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : undefined;
+  const { since, until } = rangeWindow(range);
+  const startDateFilter: { gte?: Date; lt?: Date } = {};
+  if (since) startDateFilter.gte = since;
+  if (until) startDateFilter.lt = until;
 
   const activities = await prisma.activity.findMany({
-    where: since ? { startDate: { gte: since } } : undefined,
+    where: Object.keys(startDateFilter).length ? { startDate: startDateFilter } : undefined,
     include: { user: true, kudos: true },
     orderBy: { startDate: "desc" },
   });
+
+  // Years with any club activity before this one, for browsing past-year totals.
+  const activityYears = await prisma.activity.findMany({ select: { startDate: true } });
+  const pastYears = Array.from(new Set(activityYears.map((a) => a.startDate.getFullYear())))
+    .filter((y) => y < currentYear)
+    .sort((a, b) => b - a);
 
   const leaderboardActivities =
     sport === "total" ? activities : activities.filter((a) => categorizeSport(a.sportType) === sport);
@@ -79,21 +77,39 @@ export default async function DashboardPage({
     <>
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
-        <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold">Club Dashboard</h1>
-          <div className="grid grid-cols-3 gap-2 text-sm sm:flex sm:w-auto">
-            {Object.keys(RANGE_DAYS).map((r) => (
-              <Link
-                key={r}
-                href={`/dashboard?range=${r}&sport=${sport}`}
-                className={`rounded-full border px-3 py-2 text-center sm:py-1 ${
-                  range === r ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
-                }`}
-              >
-                {RANGE_LABELS[r]}
-              </Link>
-            ))}
+        <div className="mb-6 flex flex-col gap-3 sm:mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold">Club Dashboard</h1>
+            <div className="grid grid-cols-2 gap-2 text-sm sm:flex sm:w-auto">
+              {PRIMARY_RANGES.map((r) => (
+                <Link
+                  key={r.key}
+                  href={`/dashboard?range=${r.key}&sport=${sport}`}
+                  className={`rounded-full border px-3 py-2 text-center sm:py-1 ${
+                    range === r.key ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
+                  }`}
+                >
+                  {r.label}
+                </Link>
+              ))}
+            </div>
           </div>
+          {pastYears.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-gray-500">Browse a previous year:</span>
+              {pastYears.map((y) => (
+                <Link
+                  key={y}
+                  href={`/dashboard?range=${y}&sport=${sport}`}
+                  className={`rounded-full border px-3 py-1 ${
+                    range === String(y) ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
+                  }`}
+                >
+                  {y}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         <section className="mb-8 sm:mb-10">
@@ -115,7 +131,7 @@ export default async function DashboardPage({
           </div>
           <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
             {leaderboard.length === 0 && (
-              <li className="p-4 text-sm text-gray-500">No activity yet in this range.</li>
+              <li className="p-4 text-sm text-gray-500">No activity yet for {rangeLabel(range)}.</li>
             )}
             {leaderboard.map((entry, i) => (
               <li key={entry.userId} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
@@ -137,7 +153,7 @@ export default async function DashboardPage({
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Recent Activity</h2>
+          <h2 className="mb-3 text-lg font-semibold">Recent Activity — {rangeLabel(range)}</h2>
           <ul className="space-y-3">
             {activities.length === 0 && (
               <li className="rounded-lg border bg-white p-4 text-sm text-gray-500">
