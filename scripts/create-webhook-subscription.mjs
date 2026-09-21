@@ -18,15 +18,18 @@ if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET || !STRAVA_WEBHOOK_VERIFY_TOKEN |
   process.exit(1);
 }
 
+// Strava's push_subscriptions endpoint expects form-encoded data, not JSON —
+// sending JSON here returns a generic 400 "bad request" with no useful detail.
+const body = new URLSearchParams({
+  client_id: STRAVA_CLIENT_ID,
+  client_secret: STRAVA_CLIENT_SECRET,
+  callback_url: `${APP_URL}/api/strava/webhook`,
+  verify_token: STRAVA_WEBHOOK_VERIFY_TOKEN,
+});
+
 const res = await fetch("https://www.strava.com/api/v3/push_subscriptions", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    client_id: STRAVA_CLIENT_ID,
-    client_secret: STRAVA_CLIENT_SECRET,
-    callback_url: `${APP_URL}/api/strava/webhook`,
-    verify_token: STRAVA_WEBHOOK_VERIFY_TOKEN,
-  }),
+  body,
 });
 
 const data = await res.json();
