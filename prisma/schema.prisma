@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String     @id @default(cuid())
+  stravaAthleteId BigInt     @unique
+  firstName       String?
+  lastName        String?
+  profileImageUrl String?
+  city            String?
+
+  // Strava OAuth tokens for this athlete, used to refresh and to fetch
+  // activity detail when a webhook event comes in for them.
+  accessToken    String
+  refreshToken   String
+  tokenExpiresAt DateTime
+  scope          String
+
+  createdAt DateTime @default(now())
+
+  activities Activity[]
+  kudosGiven Kudos[]    @relation("KudosGiver")
+}
+
+model Activity {
+  id               String @id @default(cuid())
+  stravaActivityId BigInt @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name               String
+  sportType          String
+  distanceMeters     Float
+  movingTimeSeconds  Int
+  elapsedTimeSeconds Int
+  totalElevationGain Float
+  startDate          DateTime
+  startDateLocal     DateTime
+  timezone           String?
+  averageSpeed       Float?
+  maxSpeed           Float?
+  achievementCount   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kudos Kudos[]
+
+  @@index([startDate])
+  @@index([userId])
+}
+
+model Kudos {
+  id String @id @default(cuid())
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  giverId String
+  giver   User   @relation("KudosGiver", fields: [giverId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([activityId, giverId])
+}
