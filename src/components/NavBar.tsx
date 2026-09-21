@@ -13,6 +13,9 @@ export default function NavBar() {
         <Link href="/members" className="text-sm text-gray-600 hover:text-gray-900">
           Members
         </Link>
+        <a href="/api/auth/signout" className="ml-auto text-sm text-gray-600 hover:text-gray-900">
+          Sign Out
+        </a>
       </div>
     </nav>
   );

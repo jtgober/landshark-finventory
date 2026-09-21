@@ -61,9 +61,14 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               {memberName}
             </Link>
             <p className="text-sm text-gray-500">
+              {/* Strava's start_date_local is the athlete's wall-clock time
+                  labeled as UTC (a documented API quirk) — pin the display
+                  timezone to UTC so we read those digits back verbatim
+                  instead of applying a second, incorrect conversion. */}
               {activity.startDateLocal.toLocaleString(undefined, {
                 dateStyle: "medium",
                 timeStyle: "short",
+                timeZone: "UTC",
               })}
             </p>
           </div>
