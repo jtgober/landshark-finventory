@@ -34,7 +34,7 @@ export default function KudosButton({
     <button
       onClick={toggle}
       disabled={isPending}
-      className={`flex items-center gap-1 rounded-full border px-3 py-1 text-sm transition-colors ${
+      className={`flex min-h-11 items-center gap-1 whitespace-nowrap rounded-full border px-3 py-2 text-sm transition-colors ${
         given ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600 hover:border-orange-400"
       } disabled:opacity-50`}
     >

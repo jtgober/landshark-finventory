@@ -70,6 +70,24 @@ npm run webhook:view     # confirms it and shows its id
 npm run webhook:delete <id>   # only if you need to re-register
 ```
 
+## Deploying
+
+Any Next.js host works. The path of least resistance is **Vercel** (for the
+app) + a managed Postgres like **Neon** or **Supabase** (for `DATABASE_URL`) —
+both have generous free tiers, which is plenty for a club this size. Set the
+env vars from `.env.example` in your host's dashboard, then run
+`npm run prisma:deploy` against the production database before (or as part
+of) your first deploy.
+
+## Mobile
+
+Most members will use this from their phones, so the UI is built mobile-first
+with Tailwind: single-column layouts, no fixed-width elements, and touch
+targets (kudos button, range filters, connect button) sized at 44px or more.
+Test locally with your browser's device toolbar (e.g. Chrome DevTools →
+Toggle device toolbar) at common widths like 375px (iPhone SE) and 390px
+(iPhone 12/13/14).
+
 ## Notes on scale
 
 At ~300 members, steady-state webhook traffic (a handful of activities per

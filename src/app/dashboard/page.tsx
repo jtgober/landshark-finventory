@@ -66,15 +66,15 @@ export default async function DashboardPage({
   const currentUserId = session.user.id;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-8 flex items-center justify-between">
+    <main className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
+      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Club Dashboard</h1>
-        <div className="flex gap-2 text-sm">
+        <div className="grid grid-cols-3 gap-2 text-sm sm:flex sm:w-auto">
           {Object.keys(RANGE_DAYS).map((r) => (
             <a
               key={r}
               href={`/dashboard?range=${r}`}
-              className={`rounded-full border px-3 py-1 ${
+              className={`rounded-full border px-3 py-2 text-center sm:py-1 ${
                 range === r ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
               }`}
             >
@@ -84,20 +84,22 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <section className="mb-10">
+      <section className="mb-8 sm:mb-10">
         <h2 className="mb-3 text-lg font-semibold">Leaderboard</h2>
         <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
           {leaderboard.length === 0 && <li className="p-4 text-sm text-gray-500">No activity yet in this range.</li>}
           {leaderboard.map((entry, i) => (
-            <li key={entry.name + i} className="flex items-center gap-4 p-4">
-              <span className="w-6 text-center font-semibold text-gray-400">{i + 1}</span>
+            <li key={entry.name + i} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <span className="w-5 shrink-0 text-center font-semibold text-gray-400 sm:w-6">{i + 1}</span>
               {entry.image && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={entry.image} alt="" className="h-8 w-8 rounded-full object-cover" />
+                <img src={entry.image} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
               )}
-              <span className="flex-1 font-medium">{entry.name}</span>
-              <span className="text-sm text-gray-500">{entry.count} activities</span>
-              <span className="w-24 text-right font-semibold">{formatDistance(entry.distanceMeters)}</span>
+              <span className="min-w-0 flex-1 truncate font-medium">{entry.name}</span>
+              <span className="hidden shrink-0 text-sm text-gray-500 sm:inline">{entry.count} activities</span>
+              <span className="w-20 shrink-0 whitespace-nowrap text-right text-sm font-semibold sm:w-24 sm:text-base">
+                {formatDistance(entry.distanceMeters)}
+              </span>
             </li>
           ))}
         </ol>
@@ -112,9 +114,12 @@ export default async function DashboardPage({
             </li>
           )}
           {activities.map((activity) => (
-            <li key={activity.id} className="flex items-center justify-between rounded-lg border bg-white p-4">
-              <div>
-                <p className="font-medium">
+            <li
+              key={activity.id}
+              className="flex items-start justify-between gap-3 rounded-lg border bg-white p-3 sm:items-center sm:p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 font-medium">
                   {activity.user.firstName} {activity.user.lastName} — {activity.name}
                 </p>
                 <p className="text-sm text-gray-500">
@@ -122,11 +127,13 @@ export default async function DashboardPage({
                   {formatDuration(activity.movingTimeSeconds)}
                 </p>
               </div>
-              <KudosButton
-                activityId={activity.id}
-                initialCount={activity.kudos.length}
-                initialGiven={activity.kudos.some((k) => k.giverId === currentUserId)}
-              />
+              <div className="shrink-0">
+                <KudosButton
+                  activityId={activity.id}
+                  initialCount={activity.kudos.length}
+                  initialGiven={activity.kudos.some((k) => k.giverId === currentUserId)}
+                />
+              </div>
             </li>
           ))}
         </ul>
