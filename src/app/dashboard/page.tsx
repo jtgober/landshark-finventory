@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDistance, formatDuration } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
-import { isValidRange, PRIMARY_RANGES, rangeLabel, rangeWindow } from "@/lib/dateRange";
+import { isValidRange, parseOffset, periodLabel, PRIMARY_RANGES, rangeWindow, supportsOffset } from "@/lib/dateRange";
 import KudosButton from "@/components/KudosButton";
 import NavBar from "@/components/NavBar";
 
@@ -21,7 +21,7 @@ interface LeaderboardEntry {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; sport?: string }>;
+  searchParams: Promise<{ range?: string; sport?: string; offset?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
@@ -33,8 +33,10 @@ export default async function DashboardPage({
       ? resolvedSearchParams.range
       : "week";
   const sport = SPORT_TABS.some((t) => t.key === resolvedSearchParams.sport) ? resolvedSearchParams.sport! : "total";
+  const offset = supportsOffset(range) ? parseOffset(resolvedSearchParams.offset, range) : 0;
 
-  const { since, until } = rangeWindow(range);
+  const { since, until } = rangeWindow(range, offset);
+  const label = periodLabel(range, offset, since, until);
   const startDateFilter: { gte?: Date; lt?: Date } = {};
   if (since) startDateFilter.gte = since;
   if (until) startDateFilter.lt = until;
@@ -94,6 +96,31 @@ export default async function DashboardPage({
               ))}
             </div>
           </div>
+          {supportsOffset(range) && (
+            <div className="flex flex-col items-center gap-2 text-sm sm:flex-row sm:gap-3">
+              <div className="flex shrink-0 items-center gap-3">
+                <Link
+                  href={`/dashboard?range=${range}&sport=${sport}&offset=${offset - 1}`}
+                  className="whitespace-nowrap rounded-full border border-gray-300 px-3 py-1 text-gray-600"
+                >
+                  &larr; Prev
+                </Link>
+                {offset < 0 ? (
+                  <Link
+                    href={`/dashboard?range=${range}&sport=${sport}&offset=${offset + 1}`}
+                    className="whitespace-nowrap rounded-full border border-gray-300 px-3 py-1 text-gray-600"
+                  >
+                    Next &rarr;
+                  </Link>
+                ) : (
+                  <span className="whitespace-nowrap rounded-full border border-gray-200 px-3 py-1 text-gray-300">
+                    Next &rarr;
+                  </span>
+                )}
+              </div>
+              <span className="text-center font-medium sm:text-left">{label}</span>
+            </div>
+          )}
           {pastYears.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-gray-500">Browse a previous year:</span>
@@ -119,7 +146,7 @@ export default async function DashboardPage({
               {SPORT_TABS.map((t) => (
                 <Link
                   key={t.key}
-                  href={`/dashboard?range=${range}&sport=${t.key}`}
+                  href={`/dashboard?range=${range}&sport=${t.key}&offset=${offset}`}
                   className={`rounded-full border px-3 py-1 ${
                     sport === t.key ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
                   }`}
@@ -131,7 +158,7 @@ export default async function DashboardPage({
           </div>
           <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
             {leaderboard.length === 0 && (
-              <li className="p-4 text-sm text-gray-500">No activity yet for {rangeLabel(range)}.</li>
+              <li className="p-4 text-sm text-gray-500">No activity yet for {label}.</li>
             )}
             {leaderboard.map((entry, i) => (
               <li key={entry.userId} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
@@ -153,7 +180,7 @@ export default async function DashboardPage({
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Recent Activity — {rangeLabel(range)}</h2>
+          <h2 className="mb-3 text-lg font-semibold">Recent Activity — {label}</h2>
           <ul className="space-y-3">
             {activities.length === 0 && (
               <li className="rounded-lg border bg-white p-4 text-sm text-gray-500">
