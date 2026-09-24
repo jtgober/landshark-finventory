@@ -73,6 +73,10 @@ export default async function DashboardPage({
   }
   const leaderboard = [...leaderboardByUser.values()].sort((a, b) => b.distanceMeters - a.distanceMeters);
 
+  const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
+  const teamActivityCount = leaderboard.reduce((sum, entry) => sum + entry.count, 0);
+  const teamParticipantCount = leaderboard.length;
+
   const currentUserId = session.user.id;
 
   return (
@@ -138,6 +142,24 @@ export default async function DashboardPage({
             </div>
           )}
         </div>
+
+        <section className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-3 sm:mb-8 sm:p-6">
+          <p className="mb-3 text-sm font-medium text-orange-800">Team Landshark — {label}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-2xl font-bold text-orange-900">{formatDistance(teamDistanceMeters)}</p>
+              <p className="text-xs text-orange-700">total distance</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-900">{teamActivityCount}</p>
+              <p className="text-xs text-orange-700">activities</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-900">{teamParticipantCount}</p>
+              <p className="text-xs text-orange-700">members active</p>
+            </div>
+          </div>
+        </section>
 
         <section className="mb-8 sm:mb-10">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
