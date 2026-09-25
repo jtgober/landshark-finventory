@@ -35,3 +35,13 @@ export function formatSpeedMph(averageSpeedMetersPerSecond: number | null): stri
   if (!averageSpeedMetersPerSecond) return "--";
   return `${(averageSpeedMetersPerSecond * 2.23694).toFixed(1)} mph`;
 }
+
+export function formatRaceDate(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
