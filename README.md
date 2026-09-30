@@ -88,6 +88,48 @@ Test locally with your browser's device toolbar (e.g. Chrome DevTools →
 Toggle device toolbar) at common widths like 375px (iPhone SE) and 390px
 (iPhone 12/13/14).
 
+## Admin, achievements and year in review
+
+### Making the first admin
+Admins are a flag in the database (`User.isAdmin`). Bootstrap the first one, then
+promote others from **Admin > Manage admins** in the app:
+
+```bash
+npx prisma studio   # open the User table, tick isAdmin on your own row
+```
+
+Admins get an **Admin** link in the nav bar with:
+- **Club metrics and exports** (`/admin/metrics`): totals, monthly trends, active and new members,
+  top members by sport, race popularity, yearly badge counts, year-over-year, inactive members.
+- **CSV exports** (members, activities, races, race signups) for any year. Files open directly in
+  Excel or Google Sheets. They contain member names but never OAuth tokens or Strava athlete IDs, and
+  text that looks like a spreadsheet formula is neutralized.
+- **Recompute achievements**: re-checks everyone's stored activity. New activity is checked
+  automatically by the Strava webhook; run this after deploying or changing thresholds.
+- **Finalize a year**: freezes every member's totals for that year into `AthleteYearSummary`.
+  Strava deletes remove activities from our database, so finalize after the year ends to keep
+  year-over-year results stable. Re-running refreshes the snapshot.
+
+### Achievements
+- **Lifetime achievements** (volume and consistency) are defined in `src/lib/achievements.ts`.
+- **Yearly badges** (bronze/silver/gold, once per calendar year, starting in 2027) are defined in
+  `src/lib/yearlyBadges.ts`. Levels in miles: Bike 2,500 / 5,000 / 7,500, Run 1,000 / 1,500 / 2,000,
+  Swim 150 / 300 / 500. Complete Athlete takes the lowest of the three sport levels.
+- Awards are never revoked, even if Strava activities are later deleted. Only activity synced since a
+  member connected counts (there is no backfill).
+
+### Year in review
+Every member has `/year-in-review/[year]`. From December 1 the dashboard links to it. Admins can open
+any member's review with `?member=<id>`.
+
+### Tests
+`npm test` runs the unit tests for streaks, achievements, yearly badges, year summaries, CSV export and
+race ranking.
+
+### Database migrations
+New tables and columns are additive. After pulling, run `npx prisma migrate dev --name <name>` locally
+(or `npx prisma migrate deploy` if a migration folder is committed).
+
 ## Notes on scale
 
 At ~300 members, steady-state webhook traffic (a handful of activities per

@@ -123,7 +123,7 @@ export default async function YearInReviewPage({
             <section className="mb-6">
               <h2 className="mb-3 text-lg font-semibold">Miles per month</h2>
               <div className="rounded-lg border bg-white p-4">
-                <MonthlyBars monthlyMeters={s.monthlyMeters} />
+                <MonthlyBars values={s.monthlyMeters} format={(m) => `${miles(m)} mi`} label="Miles" />
               </div>
             </section>
 

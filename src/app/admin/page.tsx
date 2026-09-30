@@ -16,6 +16,12 @@ export default async function AdminHomePage() {
         <h1 className="mb-6 text-2xl font-bold">Admin</h1>
         <ul className="space-y-3">
           <li>
+            <Link href="/admin/metrics" className="block rounded-lg border bg-white p-4 hover:bg-gray-50">
+              <p className="font-medium">Club metrics and exports</p>
+              <p className="text-sm text-gray-500">Totals, activity trends, race popularity, year over year, CSV downloads.</p>
+            </Link>
+          </li>
+          <li>
             <Link href="/admin/members" className="block rounded-lg border bg-white p-4 hover:bg-gray-50">
               <p className="font-medium">Manage admins</p>
               <p className="text-sm text-gray-500">Promote or demote club members.</p>
