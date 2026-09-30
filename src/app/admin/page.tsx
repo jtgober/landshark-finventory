@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin";
 import NavBar from "@/components/NavBar";
+import RecomputeButton from "@/components/RecomputeButton";
 
 export default async function AdminHomePage() {
   await requireAdminPage();
@@ -16,6 +17,13 @@ export default async function AdminHomePage() {
               <p className="font-medium">Manage admins</p>
               <p className="text-sm text-gray-500">Promote or demote club members.</p>
             </Link>
+          </li>
+          <li className="rounded-lg border bg-white p-4">
+            <p className="font-medium">Achievements</p>
+            <p className="mb-3 text-sm text-gray-500">
+              Re-check every member&apos;s stored activity and award anything newly earned. Safe to run any time.
+            </p>
+            <RecomputeButton />
           </li>
         </ul>
       </main>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchStravaActivity } from "@/lib/strava";
+import { awardForUser } from "@/lib/awardAchievements";
 
 /**
  * Strava's one-time webhook subscription handshake: it GETs this URL with
@@ -88,4 +89,11 @@ async function processEvent(event: StravaWebhookEvent) {
       userId: user.id,
     },
   });
+
+  // Badges are a bonus: a failure here must never turn into a failed webhook ack.
+  try {
+    await awardForUser(user.id);
+  } catch (err) {
+    console.error("Failed to award achievements for user", user.id, err);
+  }
 }

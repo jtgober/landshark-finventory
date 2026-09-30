@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { formatDistance, formatDuration } from "@/lib/format";
 import { categorizeSport, type SportCategory } from "@/lib/sport";
 import KudosButton from "@/components/KudosButton";
+import BadgeShelf from "@/components/BadgeShelf";
+import { computeAthleteStats } from "@/lib/athleteStats";
+import { metersToMiles } from "@/lib/units";
+import { yearlyMeters } from "@/lib/yearlyBadges";
 import NavBar from "@/components/NavBar";
 
 const SPORT_BAR_LABELS: Record<SportCategory, string> = {
@@ -47,6 +51,19 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     sportDistances[categorizeSport(activity.sportType)] += activity.distanceMeters;
   }
   const maxSportDistance = Math.max(sportDistances.run, sportDistances.ride, sportDistances.swim, 1);
+
+  const [earnedAchievements, yearlyBadges] = await Promise.all([
+    prisma.userAchievement.findMany({ where: { userId: id }, select: { key: true, awardedAt: true } }),
+    prisma.userYearlyBadge.findMany({ where: { userId: id } }),
+  ]);
+  const athleteStats = computeAthleteStats(activities);
+  const badgeYear = new Date().getFullYear();
+  const yearMeters = yearlyMeters(activities, badgeYear);
+  const currentYearMiles = {
+    RIDE: metersToMiles(yearMeters.RIDE),
+    RUN: metersToMiles(yearMeters.RUN),
+    SWIM: metersToMiles(yearMeters.SWIM),
+  };
 
   const currentUserId = session.user.id;
   const memberName = `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim() || "Club Member";
@@ -115,6 +132,14 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             ))}
           </div>
         </section>
+
+        <BadgeShelf
+          stats={athleteStats}
+          earned={earnedAchievements}
+          yearlyBadges={yearlyBadges}
+          currentYear={badgeYear}
+          currentYearMiles={currentYearMiles}
+        />
 
         <section>
           <h2 className="mb-3 text-lg font-semibold">Recent Activity</h2>

@@ -30,6 +30,9 @@ model User {
 
   racesCreated Race[]       @relation("RaceCreatedBy")
   raceSignups  RaceSignup[]
+
+  achievements UserAchievement[]
+  yearlyBadges UserYearlyBadge[]
 }
 
 model Activity {
@@ -104,4 +107,51 @@ model Kudos {
   createdAt DateTime @default(now())
 
   @@unique([activityId, giverId])
+}
+
+// Lifetime achievements. Definitions live in code (src/lib/achievements.ts);
+// a row just records that a member earned one. Never revoked.
+model UserAchievement {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  key       String
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, key])
+}
+
+enum YearlyBadgeType {
+  RIDE
+  RUN
+  SWIM
+  COMPLETE
+}
+
+enum BadgeTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+// One row per member, per calendar year, per badge. `tier` is the highest level
+// reached; the *At columns record when each level was first earned.
+model UserYearlyBadge {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year  Int
+  badge YearlyBadgeType
+  tier  BadgeTier
+
+  bronzeAt DateTime
+  silverAt DateTime?
+  goldAt   DateTime?
+
+  @@unique([userId, year, badge])
+  @@index([year])
 }
