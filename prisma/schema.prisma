@@ -31,8 +31,9 @@ model User {
   racesCreated Race[]       @relation("RaceCreatedBy")
   raceSignups  RaceSignup[]
 
-  achievements UserAchievement[]
-  yearlyBadges UserYearlyBadge[]
+  achievements  UserAchievement[]
+  yearlyBadges  UserYearlyBadge[]
+  yearSummaries AthleteYearSummary[]
 }
 
 model Activity {
@@ -153,5 +154,38 @@ model UserYearlyBadge {
   goldAt   DateTime?
 
   @@unique([userId, year, badge])
+  @@index([year])
+}
+
+// Frozen end-of-year totals. Activities are hard-deleted when a member deletes
+// them on Strava, so anything computed live can drift after the year ends;
+// finalizing a year copies the numbers here so year-over-year stays stable.
+model AthleteYearSummary {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year Int
+
+  runMeters             Float
+  rideMeters            Float
+  swimMeters            Float
+  totalMeters           Float
+  activityCount         Int
+  movingSeconds         Int
+  elevationMeters       Float
+  longestActivityMeters Float
+  bestDayStreak         Int
+  bestWeekStreak        Int
+  kudosReceived         Int
+  kudosGiven            Int
+  racesEntered          Int
+  achievementsEarned    Int
+  monthlyMeters         Json
+
+  finalizedAt DateTime @default(now())
+
+  @@unique([userId, year])
   @@index([year])
 }

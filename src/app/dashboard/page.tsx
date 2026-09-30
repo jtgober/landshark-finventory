@@ -143,6 +143,15 @@ export default async function DashboardPage({
           )}
         </div>
 
+        {new Date().getMonth() === 11 && (
+          <Link
+            href={`/year-in-review/${currentYear}`}
+            className="mb-4 block rounded-lg border border-orange-600 bg-orange-600 p-4 text-center font-medium text-white"
+          >
+            Your {currentYear} year in review is ready &rarr;
+          </Link>
+        )}
+
         <section className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-3 sm:mb-8 sm:p-6">
           <p className="mb-3 text-sm font-medium text-orange-800">Team Landshark — {label}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">

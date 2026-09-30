@@ -7,6 +7,8 @@ import { formatDistance, formatDuration } from "@/lib/format";
 import { categorizeSport, type SportCategory } from "@/lib/sport";
 import KudosButton from "@/components/KudosButton";
 import BadgeShelf from "@/components/BadgeShelf";
+import YearOverYearTable from "@/components/YearOverYearTable";
+import { getMemberYearSummaries } from "@/lib/yearSummaryDb";
 import { computeAthleteStats } from "@/lib/athleteStats";
 import { metersToMiles } from "@/lib/units";
 import { yearlyMeters } from "@/lib/yearlyBadges";
@@ -56,6 +58,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     prisma.userAchievement.findMany({ where: { userId: id }, select: { key: true, awardedAt: true } }),
     prisma.userYearlyBadge.findMany({ where: { userId: id } }),
   ]);
+  const yearSummaries = await getMemberYearSummaries(id);
   const athleteStats = computeAthleteStats(activities);
   const badgeYear = new Date().getFullYear();
   const yearMeters = yearlyMeters(activities, badgeYear);
@@ -132,6 +135,21 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             ))}
           </div>
         </section>
+
+        {yearSummaries.length > 0 && (
+          <section className="mb-6">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">Year over year</h2>
+              <Link
+                href={`/year-in-review/${yearSummaries[yearSummaries.length - 1].year}${id === currentUserId ? "" : `?member=${id}`}`}
+                className="text-sm font-medium text-orange-700"
+              >
+                Year in review &rarr;
+              </Link>
+            </div>
+            <YearOverYearTable summaries={yearSummaries} />
+          </section>
+        )}
 
         <BadgeShelf
           stats={athleteStats}
