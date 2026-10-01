@@ -84,6 +84,8 @@ of) your first deploy.
 Most members will use this from their phones, so the UI is built mobile-first
 with Tailwind: single-column layouts, no fixed-width elements, and touch
 targets (kudos button, range filters, connect button) sized at 44px or more.
+On phones the top navigation collapses into a hamburger menu (a dropdown with 48px rows that closes on
+link tap, backdrop tap, or Escape); from 640px up the links sit inline.
 Test locally with your browser's device toolbar (e.g. Chrome DevTools →
 Toggle device toolbar) at common widths like 375px (iPhone SE) and 390px
 (iPhone 12/13/14).
