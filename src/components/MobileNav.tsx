@@ -48,8 +48,15 @@ export default function MobileNav({ isAdmin }: { isAdmin: boolean }) {
       )}
       <nav className="relative z-50 border-b bg-white">
         <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-2 sm:py-3">
-          <Link href="/dashboard" className="font-bold">
-            Landshark
+          <Link href="/dashboard" className="flex shrink-0 items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-nav.png"
+              alt="Louisville Landsharks Multisport Club"
+              width={66}
+              height={48}
+              className="h-12 w-auto"
+            />
           </Link>
 
           <div className="hidden items-center gap-6 sm:flex sm:flex-1">
