@@ -22,6 +22,12 @@ export default async function AdminHomePage() {
             </Link>
           </li>
           <li>
+            <Link href="/admin/activity" className="block rounded-lg border bg-white p-4 hover:bg-gray-50">
+              <p className="font-medium">Activity log</p>
+              <p className="text-sm text-gray-500">Who has joined the app and when.</p>
+            </Link>
+          </li>
+          <li>
             <Link href="/admin/members" className="block rounded-lg border bg-white p-4 hover:bg-gray-50">
               <p className="font-medium">Manage admins</p>
               <p className="text-sm text-gray-500">Promote or demote club members.</p>
