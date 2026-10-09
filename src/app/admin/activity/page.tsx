@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import NavBar from "@/components/NavBar";
+import { canReadActivities } from "@/lib/stravaScope";
 
 const CLUB_TIME_ZONE = "America/Kentucky/Louisville";
 const LOG_LIMIT = 200;
@@ -32,7 +33,7 @@ export default async function AdminActivityLogPage() {
   await requireAdminPage();
 
   const now = Date.now();
-  const [recent, total, last7, last30] = await Promise.all([
+  const [recent, total, last7, last30, allScopes] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true,
@@ -40,6 +41,7 @@ export default async function AdminActivityLogPage() {
         lastName: true,
         profileImageUrl: true,
         city: true,
+        scope: true,
         createdAt: true,
         _count: { select: { activities: true } },
       },
@@ -49,7 +51,10 @@ export default async function AdminActivityLogPage() {
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: new Date(now - 7 * DAY_MS) } } }),
     prisma.user.count({ where: { createdAt: { gte: new Date(now - 30 * DAY_MS) } } }),
+    prisma.user.findMany({ select: { scope: true } }),
   ]);
+
+  const blockedCount = allScopes.filter((u) => !canReadActivities(u.scope)).length;
 
   return (
     <>
@@ -78,6 +83,19 @@ export default async function AdminActivityLogPage() {
           </div>
         </div>
 
+        {blockedCount > 0 && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <p className="font-medium">
+              {blockedCount} {blockedCount === 1 ? "member has" : "members have"} not allowed activity access
+            </p>
+            <p>
+              They connected Strava but unticked &ldquo;View data about your activities&rdquo;, so nothing they record
+              can sync. Ask them to remove the app in Strava (Settings, My Apps) and sign in again with every box
+              ticked.
+            </p>
+          </div>
+        )}
+
         <ul className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
           {recent.length === 0 && <li className="p-4 text-sm text-gray-500">No members have joined yet.</li>}
           {recent.map((u) => {
@@ -95,6 +113,13 @@ export default async function AdminActivityLogPage() {
                     </Link>{" "}
                     <span className="text-gray-500">joined</span>
                   </p>
+                  {!canReadActivities(u.scope) && (
+                    <p className="mt-0.5">
+                      <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        Activity access not allowed
+                      </span>
+                    </p>
+                  )}
                   <p className="truncate text-sm text-gray-500">
                     {formatJoined(u.createdAt)}
                     {u.city ? ` · ${u.city}` : ""}
@@ -111,7 +136,9 @@ export default async function AdminActivityLogPage() {
           })}
         </ul>
         {total > LOG_LIMIT && (
-          <p className="mt-3 text-sm text-gray-500">Showing the {LOG_LIMIT} most recent of {total} members.</p>
+          <p className="mt-3 text-sm text-gray-500">
+            Showing the {LOG_LIMIT} most recent of {total} members.
+          </p>
         )}
       </main>
     </>

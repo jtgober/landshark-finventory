@@ -107,7 +107,8 @@ Admins get an **Admin** link in the nav bar with:
   Excel or Google Sheets. They contain member names but never OAuth tokens or Strava athlete IDs, and
   text that looks like a spreadsheet formula is neutralized.
 - **Activity log** (`/admin/activity`): members in join order (newest first) with join time, city, and how many
-  activities have synced, plus joined-in-7/30-days counts. Read from `User.createdAt`, so it needs no extra table.
+  activities have synced, plus joined-in-7/30-days counts. Read from `User.createdAt`, so it needs no extra table. Members whose saved Strava scopes lack `activity:read` (they unticked the
+  permission on Strava's consent screen, so nothing they record can sync) get a warning badge and a summary banner.
 - **Recompute achievements**: re-checks everyone's stored activity. New activity is checked
   automatically by the Strava webhook; run this after deploying or changing thresholds.
 - **Finalize a year**: freezes every member's totals for that year into `AthleteYearSummary`.
