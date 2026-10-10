@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDistance, formatDuration } from "@/lib/format";
+import { formatDistance, formatDuration, formatElevation } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
 import { isValidRange, parseOffset, periodLabel, PRIMARY_RANGES, rangeWindow, supportsOffset } from "@/lib/dateRange";
 import KudosButton from "@/components/KudosButton";
@@ -15,6 +15,7 @@ interface LeaderboardEntry {
   image: string | null;
   distanceMeters: number;
   movingTimeSeconds: number;
+  elevationMeters: number;
   count: number;
 }
 
@@ -64,10 +65,12 @@ export default async function DashboardPage({
       image: activity.user.profileImageUrl,
       distanceMeters: 0,
       movingTimeSeconds: 0,
+      elevationMeters: 0,
       count: 0,
     };
     entry.distanceMeters += activity.distanceMeters;
     entry.movingTimeSeconds += activity.movingTimeSeconds;
+    entry.elevationMeters += activity.totalElevationGain;
     entry.count += 1;
     leaderboardByUser.set(activity.userId, entry);
   }
@@ -76,6 +79,16 @@ export default async function DashboardPage({
   const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
   const teamActivityCount = leaderboard.reduce((sum, entry) => sum + entry.count, 0);
   const teamParticipantCount = leaderboard.length;
+
+  // Elevation tiles always cover the whole range, whichever sport tab is selected.
+  let teamBikeElevationMeters = 0;
+  let teamRunElevationMeters = 0;
+  for (const activity of activities) {
+    const category = categorizeSport(activity.sportType);
+    if (category === "ride") teamBikeElevationMeters += activity.totalElevationGain;
+    else if (category === "run") teamRunElevationMeters += activity.totalElevationGain;
+  }
+  const showEntryElevation = sport === "ride" || sport === "run";
 
   const currentUserId = session.user.id;
 
@@ -154,7 +167,7 @@ export default async function DashboardPage({
 
         <section className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-3 sm:mb-8 sm:p-6">
           <p className="mb-3 text-sm font-medium text-orange-800">Team Landshark — {label}</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
             <div className="col-span-2 sm:col-span-1">
               <p className="text-2xl font-bold text-orange-900">{formatDistance(teamDistanceMeters)}</p>
               <p className="text-xs text-orange-700">total distance</p>
@@ -166,6 +179,14 @@ export default async function DashboardPage({
             <div>
               <p className="text-2xl font-bold text-orange-900">{teamParticipantCount}</p>
               <p className="text-xs text-orange-700">members active</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-900">{formatElevation(teamBikeElevationMeters)}</p>
+              <p className="text-xs text-orange-700">bike elevation</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-900">{formatElevation(teamRunElevationMeters)}</p>
+              <p className="text-xs text-orange-700">run elevation</p>
             </div>
           </div>
         </section>
@@ -188,9 +209,7 @@ export default async function DashboardPage({
             </div>
           </div>
           <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
-            {leaderboard.length === 0 && (
-              <li className="p-4 text-sm text-gray-500">No activity yet for {label}.</li>
-            )}
+            {leaderboard.length === 0 && <li className="p-4 text-sm text-gray-500">No activity yet for {label}.</li>}
             {leaderboard.map((entry, i) => (
               <li key={entry.userId} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
                 <span className="w-5 shrink-0 text-center font-semibold text-gray-400 sm:w-6">{i + 1}</span>
@@ -198,9 +217,14 @@ export default async function DashboardPage({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={entry.image} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                 )}
-                <Link href={`/members/${entry.userId}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
-                  {entry.name}
-                </Link>
+                <div className="min-w-0 flex-1">
+                  <Link href={`/members/${entry.userId}`} className="block truncate font-medium hover:underline">
+                    {entry.name}
+                  </Link>
+                  {showEntryElevation && (
+                    <p className="truncate text-xs text-gray-500">{formatElevation(entry.elevationMeters)} climbed</p>
+                  )}
+                </div>
                 <span className="hidden shrink-0 text-sm text-gray-500 sm:inline">{entry.count} activities</span>
                 <span className="w-20 shrink-0 whitespace-nowrap text-right text-sm font-semibold sm:w-24 sm:text-base">
                   {formatDistance(entry.distanceMeters)}

@@ -11,7 +11,7 @@ export function formatDuration(seconds: number): string {
 
 export function formatElevation(meters: number): string {
   const feet = Math.round(meters * 3.28084);
-  return `${feet} ft`;
+  return `${feet.toLocaleString("en-US")} ft`;
 }
 
 function formatMinSec(totalSeconds: number): string {
