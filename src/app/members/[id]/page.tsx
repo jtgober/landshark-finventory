@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDistance, formatDuration } from "@/lib/format";
+import { formatDistance, formatDuration, formatElevation } from "@/lib/format";
 import { categorizeSport, type SportCategory } from "@/lib/sport";
 import KudosButton from "@/components/KudosButton";
 import BadgeShelf from "@/components/BadgeShelf";
@@ -47,6 +47,16 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const monthDistance = sumDistance(monthActivities);
   const allTimeDistance = sumDistance(activities);
   const kudosReceived = activities.reduce((sum, a) => sum + a.kudos.length, 0);
+
+  let totalElevation = 0;
+  let bikeElevation = 0;
+  let runElevation = 0;
+  for (const a of activities) {
+    totalElevation += a.totalElevationGain;
+    const category = categorizeSport(a.sportType);
+    if (category === "ride") bikeElevation += a.totalElevationGain;
+    else if (category === "run") runElevation += a.totalElevationGain;
+  }
 
   const sportDistances: Record<SportCategory, number> = { run: 0, ride: 0, swim: 0, other: 0 };
   for (const activity of monthActivities) {
@@ -116,6 +126,24 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             <p className="text-xl font-bold sm:text-2xl">{kudosReceived}</p>
           </div>
         </div>
+
+        <section className="mb-6">
+          <h2 className="mb-3 text-lg font-semibold">Elevation Climbed (All Time)</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="col-span-2 rounded-lg border bg-white p-4 sm:col-span-1">
+              <p className="text-xs text-gray-500">Total</p>
+              <p className="text-xl font-bold sm:text-2xl">{formatElevation(totalElevation)}</p>
+            </div>
+            <div className="rounded-lg border bg-white p-4">
+              <p className="text-xs text-gray-500">Bike</p>
+              <p className="text-xl font-bold sm:text-2xl">{formatElevation(bikeElevation)}</p>
+            </div>
+            <div className="rounded-lg border bg-white p-4">
+              <p className="text-xs text-gray-500">Run</p>
+              <p className="text-xl font-bold sm:text-2xl">{formatElevation(runElevation)}</p>
+            </div>
+          </div>
+        </section>
 
         <section className="mb-6">
           <h2 className="mb-3 text-lg font-semibold">By Sport (This Month)</h2>
