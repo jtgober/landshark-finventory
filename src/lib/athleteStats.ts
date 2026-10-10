@@ -1,4 +1,5 @@
 import { categorizeSport } from "./sport";
+import { HOLIDAYS, holidaysOn } from "./holidays";
 import { dayNumber, longestConsecutiveRun, longestDayStreak, longestWeekStreak, weekNumber } from "./streaks";
 import { metersToMiles } from "./units";
 
@@ -50,14 +51,16 @@ export interface AthleteStats {
   monthsInYear: number;
   /** Times activity resumed after 30 or more days with nothing logged. */
   comebacks: number;
-  /** Distinct holidays (per year) with an activity. */
-  holidays: number;
+  /** Distinct tracked holidays (across all years) with an activity. */
+  holidayTypes: number;
   bestMonthMiles: number;
   bestMonthActivities: number;
   /** Distinct Strava sport types logged. */
   sportTypes: number;
   raceSignups: number;
   memberDays: number;
+  /** 1 if the member has ever logged an activity on that holiday, else 0 (one per entry in HOLIDAYS). */
+  [holiday: `holiday:${string}`]: number;
 }
 
 const METERS_TO_FEET = 3.28084;
@@ -69,23 +72,6 @@ const COMEBACK_GAP_DAYS = 30;
 function seasonOfMonth(month: number): number {
   if (month === 11 || month <= 1) return 0;
   return Math.floor((month - 2) / 3) + 1;
-}
-
-/**
- * Which tracked holiday a local calendar date is, or null. Holidays: New Year's Day,
- * Memorial Day, July 4, Labor Day, Thanksgiving and Christmas Day.
- */
-export function holidayOf(date: Date): string | null {
-  const month = date.getUTCMonth();
-  const day = date.getUTCDate();
-  const dow = date.getUTCDay();
-  if (month === 0 && day === 1) return "new-year";
-  if (month === 4 && dow === 1 && day >= 25) return "memorial";
-  if (month === 6 && day === 4) return "july-4";
-  if (month === 8 && dow === 1 && day <= 7) return "labor";
-  if (month === 10 && dow === 4 && day >= 22 && day <= 28) return "thanksgiving";
-  if (month === 11 && day === 25) return "christmas";
-  return null;
 }
 
 function maxSetSize(byYear: Map<number, Set<number>>): number {
@@ -111,7 +97,7 @@ export function computeAthleteStats(activities: StatActivity[], extras: StatExtr
   const seasonsByYear = new Map<number, Set<number>>();
   const monthsByYear = new Map<number, Set<number>>();
   const daysByWeek = new Map<number, Set<number>>();
-  const holidayKeys = new Set<string>();
+  const holidaysSeen = new Set<string>();
   const milesByMonth = new Map<number, number>();
   const countByMonth = new Map<number, number>();
   const sportTypes = new Set<string>();
@@ -162,8 +148,7 @@ export function computeAthleteStats(activities: StatActivity[], extras: StatExtr
     weekDays.add(a.startDateLocal.getUTCDay());
     daysByWeek.set(week, weekDays);
 
-    const holiday = holidayOf(a.startDateLocal);
-    if (holiday) holidayKeys.add(`${year}-${holiday}`);
+    for (const id of holidaysOn(a.startDateLocal)) holidaysSeen.add(id);
 
     const monthKey = year * 12 + month;
     milesByMonth.set(monthKey, (milesByMonth.get(monthKey) ?? 0) + a.distanceMeters);
@@ -188,7 +173,7 @@ export function computeAthleteStats(activities: StatActivity[], extras: StatExtr
     ? Math.max(0, Math.floor((now.getTime() - extras.memberSince.getTime()) / MS_PER_DAY))
     : 0;
 
-  return {
+  const stats: AthleteStats = {
     totalMiles: metersToMiles(total),
     runMiles: metersToMiles(run),
     rideMiles: metersToMiles(ride),
@@ -210,11 +195,13 @@ export function computeAthleteStats(activities: StatActivity[], extras: StatExtr
     seasonsInYear: maxSetSize(seasonsByYear),
     monthsInYear: maxSetSize(monthsByYear),
     comebacks,
-    holidays: holidayKeys.size,
+    holidayTypes: holidaysSeen.size,
     bestMonthMiles: metersToMiles(Math.max(0, ...milesByMonth.values())),
     bestMonthActivities: Math.max(0, ...countByMonth.values()),
     sportTypes: sportTypes.size,
     raceSignups: extras.raceSignups ?? 0,
     memberDays,
   };
+  for (const h of HOLIDAYS) stats[`holiday:${h.id}`] = holidaysSeen.has(h.id) ? 1 : 0;
+  return stats;
 }

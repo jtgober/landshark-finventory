@@ -111,7 +111,7 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
                         );
                       })}
                     </ul>
-                    {next && family.key !== "every-discipline" && (
+                    {next && !family.collection && family.key !== "every-discipline" && (
                       <div className="mt-3 border-t pt-3">
                         <div className="mb-1 flex justify-between gap-2 text-xs text-gray-600">
                           <span>Next: {next.name}</span>

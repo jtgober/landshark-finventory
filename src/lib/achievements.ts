@@ -1,4 +1,5 @@
 import type { AthleteStats } from "./athleteStats";
+import { HOLIDAYS } from "./holidays";
 
 export type AchievementMetric = keyof AthleteStats;
 export type AchievementCategory = "volume" | "consistency" | "skill" | "habit" | "club";
@@ -25,7 +26,27 @@ export type GlyphKey =
   | "fin"
   | "gift"
   | "target"
-  | "grid";
+  | "grid"
+  | "sparkle"
+  | "heart"
+  | "clover"
+  | "egg"
+  | "horseshoe"
+  | "star"
+  | "firework"
+  | "hammer"
+  | "pumpkin"
+  | "turkey"
+  | "tree"
+  | "clock";
+
+/** Custom badge colors, used instead of the level's metal (for example for holidays). */
+export interface BadgePalette {
+  rim: string;
+  face: string;
+  highlight: string;
+  ink: string;
+}
 
 export interface AchievementDef {
   key: string;
@@ -41,6 +62,10 @@ export interface AchievementDef {
   glyph: GlyphKey;
   /** Short text printed on the badge, e.g. "100 mi". */
   label: string;
+  /** Overrides the metal color for this badge when earned. */
+  palette?: BadgePalette;
+  /** A stand-alone badge (not a rung to climb), so it never appears under "next up". */
+  oneOff?: boolean;
 }
 
 export interface AchievementFamily {
@@ -49,6 +74,8 @@ export interface AchievementFamily {
   glyph: GlyphKey;
   /** Section heading on the badges page. */
   group: string;
+  /** A set of separate badges to collect, rather than a ladder, so no progress bar is shown. */
+  collection?: boolean;
 }
 
 /** Display order for the badges page; families sharing a `group` are listed under one heading. */
@@ -75,7 +102,8 @@ export const ACHIEVEMENT_FAMILIES: AchievementFamily[] = [
   { key: "early-bird", title: "Early bird", glyph: "sunrise", group: "Habits" },
   { key: "night-owl", title: "Night owl", glyph: "moon", group: "Habits" },
   { key: "four-seasons", title: "Four seasons", glyph: "seasons", group: "Habits" },
-  { key: "holidays", title: "Holiday activities", glyph: "gift", group: "Habits" },
+  { key: "holiday-days", title: "Holiday activities", glyph: "gift", group: "Holidays", collection: true },
+  { key: "holiday-collector", title: "Holiday collector", glyph: "gift", group: "Holidays" },
   { key: "variety", title: "Variety", glyph: "grid", group: "Habits" },
   { key: "race-ready", title: "Race ready", glyph: "flag", group: "Club" },
   { key: "club-regular", title: "Club regular", glyph: "fin", group: "Club" },
@@ -263,20 +291,26 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     glyph: "seasons",
     label: "12 mo",
   },
-  ...ladder("holidays", "holidays", "habit", "gift", [
-    [
-      1,
-      "Holiday hustle",
-      "Active on New Year's Day, Memorial Day, July 4, Labor Day, Thanksgiving or Christmas.",
-      "1 of 6",
-    ],
-    [
-      3,
-      "Holiday regular",
-      "Active on 3 holidays (New Year's, Memorial Day, July 4, Labor Day, Thanksgiving, Christmas).",
-      "3 of 6",
-    ],
-    [6, "Every holiday", "Active on 6 holidays (counted per year).", "6 of 6"],
+  ...HOLIDAYS.map(
+    (h): AchievementDef => ({
+      key: `holiday-${h.id}`,
+      name: h.name,
+      description: h.description,
+      category: "habit",
+      metric: `holiday:${h.id}`,
+      threshold: 1,
+      family: "holiday-days",
+      level: 1,
+      glyph: h.glyph,
+      label: h.label,
+      palette: h.palette,
+      oneOff: true,
+    }),
+  ),
+  ...ladder("holiday-collector", "holidayTypes", "habit", "gift", [
+    [3, "Holiday regular", "Logged activities on 3 different holidays.", "3 of 12"],
+    [6, "Holiday fan", "Logged activities on 6 different holidays.", "6 of 12"],
+    [12, "Every holiday", "Logged activities on all 12 holidays.", "All 12"],
   ]),
   ...ladder("variety", "sportTypes", "habit", "grid", [
     [3, "3 kinds of activity", "Logged 3 different Strava activity types.", "3 types"],
@@ -326,7 +360,7 @@ export interface NextUp {
 export function nextUpAchievements(stats: AthleteStats, earnedKeys: Set<string>): NextUp[] {
   const byMetric = new Map<AchievementMetric, AchievementDef>();
   for (const def of ACHIEVEMENTS) {
-    if (earnedKeys.has(def.key) || stats[def.metric] >= def.threshold) continue;
+    if (def.oneOff || earnedKeys.has(def.key) || stats[def.metric] >= def.threshold) continue;
     const existing = byMetric.get(def.metric);
     if (!existing || def.threshold < existing.threshold) byMetric.set(def.metric, def);
   }

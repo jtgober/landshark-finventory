@@ -116,7 +116,7 @@ describe("badge definitions", () => {
       expect(defs.length, f.key).toBeGreaterThan(0);
       const thresholds = defs.map((d) => d.threshold);
       expect(thresholds, f.key).toEqual([...thresholds].sort((a, b) => a - b));
-      expect(new Set(defs.map((d) => d.level)).size, f.key).toBe(defs.length);
+      if (!f.collection) expect(new Set(defs.map((d) => d.level)).size, f.key).toBe(defs.length);
       expect(Math.max(...defs.map((d) => d.level)), f.key).toBeLessThanOrEqual(4);
     }
   });

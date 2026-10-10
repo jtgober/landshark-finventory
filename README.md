@@ -119,8 +119,10 @@ Admins get an **Admin** link in the nav bar with:
 There are about 80 lifetime achievements in 26 ladders, grouped on the badges page: distance and time (total, run, ride,
 swim, activities, time on feet, climber), big days (longest single ride, run, swim), consistency (daily, weekly and
 weekend streaks, comeback, monthly challenges), triathlon (all three sports, brick, triple brick), habits (early bird,
-night owl, four seasons, holidays, variety) and club (race ready, club regular). Definitions live in
-`src/lib/achievements.ts`; the measures behind them are computed in `src/lib/athleteStats.ts`. A few use data beyond
+night owl, four seasons, variety), holidays (a separate badge with its own icon and colors for each of 12
+holidays: New Year's Day, Valentine's Day, St. Patrick's Day, Easter, Derby Day, Memorial Day, Independence Day, Labor
+Day, Halloween, Thanksgiving, Christmas, New Year's Eve, plus collector badges) and club (race ready, club regular). Definitions live in
+`src/lib/achievements.ts`; the holiday date rules (including Easter) are in `src/lib/holidays.ts`; the measures behind them are computed in `src/lib/athleteStats.ts`. A few use data beyond
 activities: race signups and the join date. Race badges are also checked when someone signs up for a race; club
 regular is checked on the member's next activity or when an admin runs Recompute achievements.
 Each lifetime achievement has a hexagon badge (bronze, silver, gold, then platinum by level) and each yearly

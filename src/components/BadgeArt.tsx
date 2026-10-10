@@ -207,6 +207,100 @@ function Glyph({ name, color }: { name: GlyphKey; color: string }) {
           <path d="M30 26 L36 32 L30 38 L24 32 Z" />
         </g>
       );
+    case "sparkle":
+      return (
+        <g {...stroke}>
+          <path d="M18 4 C19 15 24 20 35 22 C24 24 19 29 18 40 C17 29 12 24 1 22 C12 20 17 15 18 4 Z" fill={color} />
+          <path d="M33 3 V11 M29 7 H37" strokeWidth={2.5} />
+        </g>
+      );
+    case "heart":
+      return (
+        <g {...stroke}>
+          <path
+            d="M20 39 C6 29 3 21 3 15 C3 9 8 5 13 5 C16 5 19 7 20 10 C21 7 24 5 27 5 C32 5 37 9 37 15 C37 21 34 29 20 39 Z"
+            fill={color}
+          />
+        </g>
+      );
+    case "clover":
+      return (
+        <g {...stroke}>
+          <circle cx="13" cy="14" r="7" fill={color} />
+          <circle cx="27" cy="14" r="7" fill={color} />
+          <circle cx="20" cy="25" r="7" fill={color} />
+          <path d="M20 27 Q20 37 13 41" />
+        </g>
+      );
+    case "egg":
+      return (
+        <g {...stroke}>
+          <path d="M20 3 C30 3 35 20 35 28 C35 36 28 41 20 41 C12 41 5 36 5 28 C5 20 10 3 20 3 Z" />
+          <path d="M7 25 L12 21 L17 25 L23 21 L28 25 L33 21" />
+          <circle cx="14" cy="33" r="1.8" fill={color} />
+          <circle cx="26" cy="33" r="1.8" fill={color} />
+        </g>
+      );
+    case "horseshoe":
+      return (
+        <g {...stroke} strokeWidth={5}>
+          <path d="M8 5 V24 C8 38 32 38 32 24 V5" />
+          <path d="M8 13 H12 M32 13 H28" strokeWidth={3} />
+        </g>
+      );
+    case "star":
+      return (
+        <g {...stroke}>
+          <path d="M20 3 L25 15 L38 16 L28 25 L31 38 L20 31 L9 38 L12 25 L2 16 L15 15 Z" fill={color} />
+        </g>
+      );
+    case "firework":
+      return (
+        <g {...stroke}>
+          <path d="M20 3 V12 M20 28 V37 M3 20 H12 M28 20 H37 M8 8 L14 14 M26 26 L32 32 M32 8 L26 14 M14 26 L8 32" />
+          <circle cx="20" cy="20" r="2.5" fill={color} />
+          <path d="M33 38 H33.5 M7 38 H7.5 M20 42 H20.5" strokeWidth={4} />
+        </g>
+      );
+    case "hammer":
+      return (
+        <g {...stroke}>
+          <rect x="5" y="5" width="30" height="11" rx="2" fill={color} />
+          <path d="M20 16 V41" strokeWidth={5} />
+        </g>
+      );
+    case "pumpkin":
+      return (
+        <g {...stroke}>
+          <ellipse cx="20" cy="27" rx="16" ry="13" />
+          <path d="M20 14 V6 H25" />
+          <path d="M10 22 L16 22 L13 28 Z M24 22 L30 22 L27 28 Z" fill={color} strokeWidth={1.5} />
+          <path d="M11 33 L15 31 L18 34 L22 31 L25 34 L29 31" strokeWidth={2.5} />
+        </g>
+      );
+    case "turkey":
+      return (
+        <g {...stroke}>
+          <path d="M20 26 L4 16 M20 26 L10 6 M20 26 L20 3 M20 26 L30 6 M20 26 L36 16" strokeWidth={4} />
+          <circle cx="20" cy="31" r="9" fill={color} />
+          <path d="M16 41 V43 M24 41 V43" strokeWidth={2.5} />
+        </g>
+      );
+    case "tree":
+      return (
+        <g {...stroke}>
+          <path d="M20 2 L10 16 H15 L6 28 H14 L3 40 H37 L26 28 H34 L25 16 H30 Z" fill={color} />
+          <path d="M20 40 V43" strokeWidth={4} />
+        </g>
+      );
+    case "clock":
+      return (
+        <g {...stroke}>
+          <circle cx="20" cy="23" r="16" />
+          <path d="M20 23 V9 M20 23 H28" />
+          <path d="M20 7 V9 M20 37 V39 M4 23 H6 M34 23 H36" strokeWidth={2.5} />
+        </g>
+      );
     case "trio":
       return (
         <g {...stroke}>
@@ -220,7 +314,7 @@ function Glyph({ name, color }: { name: GlyphKey; color: string }) {
 
 /** Hexagon badge for a lifetime achievement. Unearned badges render as a gray outline. */
 export function AchievementBadge({ def, earned, size = 72 }: { def: AchievementDef; earned: boolean; size?: number }) {
-  const m = METALS[earned ? metalForLevel(def.level) : "locked"];
+  const m = earned ? (def.palette ?? METALS[metalForLevel(def.level)]) : METALS.locked;
   return (
     <svg
       viewBox="0 0 100 100"

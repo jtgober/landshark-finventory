@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeAthleteStats, holidayOf, type StatActivity } from "../athleteStats";
+import { computeAthleteStats, type StatActivity } from "../athleteStats";
+import { easterDate, HOLIDAYS, holidaysOn } from "../holidays";
 import { ACHIEVEMENTS, evaluateAchievements } from "../achievements";
 import { formatProgress } from "../badgeProgress";
 import { milesToMeters } from "../units";
@@ -179,27 +180,86 @@ describe("comeback", () => {
 });
 
 describe("holidays", () => {
-  it("recognises each tracked holiday and not the day before", () => {
-    const d = (s: string) => new Date(`${s}T08:00:00Z`);
-    expect(holidayOf(d("2027-01-01"))).toBe("new-year");
-    expect(holidayOf(d("2027-05-31"))).toBe("memorial");
-    expect(holidayOf(d("2027-05-24"))).toBeNull();
-    expect(holidayOf(d("2027-07-04"))).toBe("july-4");
-    expect(holidayOf(d("2027-09-06"))).toBe("labor");
-    expect(holidayOf(d("2027-09-13"))).toBeNull();
-    expect(holidayOf(d("2027-11-25"))).toBe("thanksgiving");
-    expect(holidayOf(d("2027-11-18"))).toBeNull();
-    expect(holidayOf(d("2027-12-25"))).toBe("christmas");
+  const d = (s: string) => new Date(`${s}T08:00:00Z`);
+
+  it("recognises each fixed-date holiday and not the day before", () => {
+    expect(holidaysOn(d("2027-01-01"))).toEqual(["new-years-day"]);
+    expect(holidaysOn(d("2027-02-14"))).toEqual(["valentines-day"]);
+    expect(holidaysOn(d("2027-02-13"))).toEqual([]);
+    expect(holidaysOn(d("2027-03-17"))).toEqual(["st-patricks-day"]);
+    expect(holidaysOn(d("2027-07-04"))).toEqual(["independence-day"]);
+    expect(holidaysOn(d("2027-10-31"))).toEqual(["halloween"]);
+    expect(holidaysOn(d("2027-12-25"))).toEqual(["christmas"]);
+    expect(holidaysOn(d("2027-12-24"))).toEqual([]);
+    expect(holidaysOn(d("2027-12-31"))).toEqual(["new-years-eve"]);
   });
 
-  it("counts a holiday once per year, however many activities", () => {
+  it("finds the moving holidays in the right week", () => {
+    // 2027: Derby May 1 (Sat), Memorial Day May 31 (Mon), Labor Day Sep 6 (Mon), Thanksgiving Nov 25 (Thu).
+    expect(holidaysOn(d("2027-05-01"))).toEqual(["derby-day"]);
+    expect(holidaysOn(d("2027-05-08"))).toEqual([]);
+    expect(holidaysOn(d("2027-05-31"))).toEqual(["memorial-day"]);
+    expect(holidaysOn(d("2027-05-24"))).toEqual([]);
+    expect(holidaysOn(d("2027-09-06"))).toEqual(["labor-day"]);
+    expect(holidaysOn(d("2027-09-13"))).toEqual([]);
+    expect(holidaysOn(d("2027-11-25"))).toEqual(["thanksgiving"]);
+    expect(holidaysOn(d("2027-11-18"))).toEqual([]);
+    // 2026 Derby is May 2 and Thanksgiving is Nov 26.
+    expect(holidaysOn(d("2026-05-02"))).toEqual(["derby-day"]);
+    expect(holidaysOn(d("2026-11-26"))).toEqual(["thanksgiving"]);
+  });
+
+  it("computes Easter Sunday for known years", () => {
+    const known: [number, number, number][] = [
+      [2024, 2, 31],
+      [2025, 3, 20],
+      [2026, 3, 5],
+      [2027, 2, 28],
+      [2028, 3, 16],
+    ];
+    for (const [year, month, day] of known) expect(easterDate(year), String(year)).toEqual({ month, day });
+    expect(holidaysOn(d("2026-04-05"))).toEqual(["easter"]);
+    expect(holidaysOn(d("2026-04-12"))).toEqual([]);
+  });
+
+  it("gives each holiday its own badge, icon and colors", () => {
+    expect(new Set(HOLIDAYS.map((h) => h.id)).size).toBe(HOLIDAYS.length);
+    expect(new Set(HOLIDAYS.map((h) => h.glyph)).size).toBe(HOLIDAYS.length);
+    expect(new Set(HOLIDAYS.map((h) => h.palette.face)).size).toBe(HOLIDAYS.length);
+    for (const h of HOLIDAYS)
+      expect(
+        ACHIEVEMENTS.some((a) => a.key === `holiday-${h.id}`),
+        h.id,
+      ).toBe(true);
+  });
+
+  it("awards a holiday on any year and flags it once, however many activities", () => {
     const stats = computeAthleteStats([
-      at("2027-07-04T07:00:00"),
-      at("2027-07-04T18:00:00"),
+      at("2026-12-25T07:00:00"),
+      at("2026-12-25T18:00:00"),
       at("2027-12-25T07:00:00"),
-      at("2028-07-04T07:00:00"),
+      at("2026-04-05T07:00:00"),
     ]);
-    expect(stats.holidays).toBe(3);
+    expect(stats["holiday:christmas"]).toBe(1);
+    expect(stats["holiday:easter"]).toBe(1);
+    expect(stats["holiday:halloween"]).toBe(0);
+    expect(stats.holidayTypes).toBe(2);
+    const earned = evaluateAchievements(stats);
+    expect(earned).toContain("holiday-christmas");
+    expect(earned).toContain("holiday-easter");
+    expect(earned).not.toContain("holiday-halloween");
+  });
+
+  it("counts different holidays for the collector badges", () => {
+    const three = computeAthleteStats([
+      at("2027-01-01T07:00:00"),
+      at("2027-07-04T07:00:00"),
+      at("2027-12-25T07:00:00"),
+    ]);
+    expect(three.holidayTypes).toBe(3);
+    const earned = evaluateAchievements(three);
+    expect(earned).toContain("holiday-collector-3");
+    expect(earned).not.toContain("holiday-collector-6");
   });
 });
 
