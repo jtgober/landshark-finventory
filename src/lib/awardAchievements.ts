@@ -1,12 +1,7 @@
 import { prisma } from "./prisma";
 import { computeAthleteStats } from "./athleteStats";
 import { evaluateAchievements } from "./achievements";
-import {
-  computeYearlyTiers,
-  mergeYearlyTier,
-  YEARLY_BADGES_START_YEAR,
-  type YearlyBadgeType,
-} from "./yearlyBadges";
+import { computeYearlyTiers, mergeYearlyTier, YEARLY_BADGES_START_YEAR, type YearlyBadgeType } from "./yearlyBadges";
 
 const BADGE_TYPES: YearlyBadgeType[] = ["RIDE", "RUN", "SWIM", "COMPLETE"];
 
@@ -16,17 +11,30 @@ const BADGE_TYPES: YearlyBadgeType[] = ["RIDE", "RUN", "SWIM", "COMPLETE"];
  * awards are only ever added or upgraded, never removed.
  */
 export async function awardForUser(userId: string, now = new Date()) {
-  const activities = await prisma.activity.findMany({
-    where: { userId },
-    select: { startDateLocal: true, sportType: true, distanceMeters: true },
-  });
+  const [activities, raceSignups, member] = await Promise.all([
+    prisma.activity.findMany({
+      where: { userId },
+      select: {
+        startDateLocal: true,
+        sportType: true,
+        distanceMeters: true,
+        movingTimeSeconds: true,
+        totalElevationGain: true,
+      },
+    }),
+    prisma.raceSignup.count({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+  ]);
 
-  const earnedKeys = evaluateAchievements(computeAthleteStats(activities));
+  const stats = computeAthleteStats(activities, { raceSignups, memberSince: member?.createdAt, now });
+  const earnedKeys = evaluateAchievements(stats);
   const created = earnedKeys.length
-    ? (await prisma.userAchievement.createMany({
-        data: earnedKeys.map((key) => ({ userId, key, awardedAt: now })),
-        skipDuplicates: true,
-      })).count
+    ? (
+        await prisma.userAchievement.createMany({
+          data: earnedKeys.map((key) => ({ userId, key, awardedAt: now })),
+          skipDuplicates: true,
+        })
+      ).count
     : 0;
 
   const years = new Set(activities.map((a) => a.startDateLocal.getUTCFullYear()));

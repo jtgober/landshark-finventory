@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { awardForUser } from "@/lib/awardAchievements";
 
 async function requireUserId() {
   const session = await getServerSession(authOptions);
@@ -24,6 +25,13 @@ export async function POST(req: Request) {
     update: {},
     create: { raceId, userId },
   });
+
+  // Badges are a bonus: never let an awarding failure break the signup itself.
+  try {
+    await awardForUser(userId);
+  } catch (err) {
+    console.error("Failed to award achievements for user", userId, err);
+  }
 
   const count = await prisma.raceSignup.count({ where: { raceId } });
   return NextResponse.json({ count, given: true });

@@ -91,6 +91,122 @@ function Glyph({ name, color }: { name: GlyphKey; color: string }) {
           <path d="M13 25 H13.5 M20 25 H20.5 M27 25 H27.5 M13 32 H13.5 M20 32 H20.5" />
         </g>
       );
+    case "mountain":
+      return (
+        <g {...stroke}>
+          <path d="M2 40 L15 14 L22 26 L27 19 L38 40 Z" />
+          <path d="M11 22 L15 18 L19 22" />
+        </g>
+      );
+    case "hourglass":
+      return (
+        <g {...stroke}>
+          <path d="M9 4 H31 M9 40 H31" />
+          <path d="M11 4 C11 16 20 18 20 22 C20 26 11 28 11 40 M29 4 C29 16 20 18 20 22 C20 26 29 28 29 40" />
+          <path d="M15 36 H25" />
+        </g>
+      );
+    case "sunrise":
+      return (
+        <g {...stroke}>
+          <path d="M8 32 A12 12 0 0 1 32 32" />
+          <path d="M2 36 H38 M8 42 H32" />
+          <path d="M20 8 V14 M6 16 L10 20 M34 16 L30 20" />
+        </g>
+      );
+    case "moon":
+      return (
+        <g {...stroke}>
+          <path d="M28 5 A17 17 0 1 0 36 31 A14 14 0 0 1 28 5 Z" fill={color} />
+          <circle cx="32" cy="12" r="1.5" fill={color} />
+        </g>
+      );
+    case "bricks":
+      return (
+        <g {...stroke} strokeWidth={2.5}>
+          <rect x="3" y="10" width="16" height="10" />
+          <rect x="21" y="10" width="16" height="10" />
+          <rect x="12" y="22" width="16" height="10" />
+          <path d="M3 22 H10 V32 H3 M30 22 H37 V32 H30" />
+        </g>
+      );
+    case "bricks3":
+      return (
+        <g {...stroke} strokeWidth={2.5}>
+          <rect x="3" y="4" width="16" height="9" />
+          <rect x="21" y="4" width="16" height="9" />
+          <rect x="12" y="15" width="16" height="9" />
+          <path d="M3 15 H10 V24 H3 M30 15 H37 V24 H30" />
+          <rect x="3" y="26" width="16" height="9" />
+          <rect x="21" y="26" width="16" height="9" />
+          <circle cx="20" cy="40" r="1.8" fill={color} />
+        </g>
+      );
+    case "weekend":
+      return (
+        <g {...stroke}>
+          <rect x="5" y="8" width="30" height="30" rx="4" />
+          <path d="M5 17 H35 M13 3 V11 M27 3 V11" />
+          <rect x="17" y="24" width="7" height="7" fill={color} />
+          <rect x="26" y="24" width="7" height="7" fill={color} />
+        </g>
+      );
+    case "seasons":
+      return (
+        <g {...stroke}>
+          <circle cx="20" cy="22" r="15" />
+          <path d="M20 7 V37 M5 22 H35" />
+          <circle cx="12.5" cy="14.5" r="2.5" fill={color} />
+          <circle cx="27.5" cy="29.5" r="2.5" fill={color} />
+        </g>
+      );
+    case "refresh":
+      return (
+        <g {...stroke}>
+          <path d="M33 22 A13 13 0 1 1 28 11" />
+          <path d="M30 4 L28 12 L36 14" />
+        </g>
+      );
+    case "flag":
+      return (
+        <g {...stroke}>
+          <path d="M9 4 V42" />
+          <path d="M9 6 H34 L28 14 L34 22 H9" fill={color} />
+        </g>
+      );
+    case "fin":
+      return (
+        <g {...stroke}>
+          <path d="M6 36 C14 36 18 24 22 4 C25 18 31 30 37 36 Z" fill={color} />
+          <path d="M2 41 q4.5 -4 9 0 t9 0 t9 0 t9 0" />
+        </g>
+      );
+    case "gift":
+      return (
+        <g {...stroke}>
+          <rect x="6" y="19" width="28" height="20" />
+          <rect x="3" y="13" width="34" height="6" />
+          <path d="M20 13 V39" />
+          <path d="M20 13 C14 3 8 9 14 13 M20 13 C26 3 32 9 26 13" />
+        </g>
+      );
+    case "target":
+      return (
+        <g {...stroke}>
+          <circle cx="20" cy="23" r="16" />
+          <circle cx="20" cy="23" r="9" />
+          <circle cx="20" cy="23" r="3" fill={color} />
+        </g>
+      );
+    case "grid":
+      return (
+        <g {...stroke}>
+          <circle cx="11" cy="13" r="6" />
+          <rect x="24" y="7" width="12" height="12" />
+          <path d="M11 26 L17.5 38 H4.5 Z" />
+          <path d="M30 26 L36 32 L30 38 L24 32 Z" />
+        </g>
+      );
     case "trio":
       return (
         <g {...stroke}>

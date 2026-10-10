@@ -1,11 +1,22 @@
 import { categorizeSport } from "./sport";
-import { longestDayStreak, longestWeekStreak, weekNumber } from "./streaks";
+import { dayNumber, longestConsecutiveRun, longestDayStreak, longestWeekStreak, weekNumber } from "./streaks";
 import { metersToMiles } from "./units";
 
 export interface StatActivity {
   startDateLocal: Date;
   sportType: string;
   distanceMeters: number;
+  movingTimeSeconds?: number;
+  totalElevationGain?: number;
+}
+
+/** Facts about a member that don't come from their activities. */
+export interface StatExtras {
+  raceSignups?: number;
+  /** When the member joined the site. */
+  memberSince?: Date | null;
+  /** Injectable clock for tests. */
+  now?: Date;
 }
 
 export interface AthleteStats {
@@ -18,31 +29,165 @@ export interface AthleteStats {
   weekStreak: number;
   /** 1 if any Mon-Sun week contains a run, a ride and a swim, else 0. */
   completeWeek: number;
+  elevationFeet: number;
+  movingHours: number;
+  longestRideMiles: number;
+  longestRunMiles: number;
+  longestSwimMiles: number;
+  /** Activities started before 6 am local time. */
+  earlyCount: number;
+  /** Activities started at or after 8 pm local time. */
+  nightCount: number;
+  /** Days with both a ride and a run. */
+  brickDays: number;
+  /** Days with a swim, a ride and a run. */
+  tripleBrickDays: number;
+  /** Most Mon-Sun weeks in a row with activity on both the Saturday and the Sunday. */
+  weekendStreak: number;
+  /** Most distinct seasons (winter, spring, summer, fall) covered in one calendar year. */
+  seasonsInYear: number;
+  /** Most distinct months covered in one calendar year. */
+  monthsInYear: number;
+  /** Times activity resumed after 30 or more days with nothing logged. */
+  comebacks: number;
+  /** Distinct holidays (per year) with an activity. */
+  holidays: number;
+  bestMonthMiles: number;
+  bestMonthActivities: number;
+  /** Distinct Strava sport types logged. */
+  sportTypes: number;
+  raceSignups: number;
+  memberDays: number;
 }
 
-export function computeAthleteStats(activities: StatActivity[]): AthleteStats {
+const METERS_TO_FEET = 3.28084;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/** A comeback needs more than this many days between two active days. */
+const COMEBACK_GAP_DAYS = 30;
+
+/** Season index for a 0-based month: winter (Dec-Feb), spring, summer, fall. */
+function seasonOfMonth(month: number): number {
+  if (month === 11 || month <= 1) return 0;
+  return Math.floor((month - 2) / 3) + 1;
+}
+
+/**
+ * Which tracked holiday a local calendar date is, or null. Holidays: New Year's Day,
+ * Memorial Day, July 4, Labor Day, Thanksgiving and Christmas Day.
+ */
+export function holidayOf(date: Date): string | null {
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const dow = date.getUTCDay();
+  if (month === 0 && day === 1) return "new-year";
+  if (month === 4 && dow === 1 && day >= 25) return "memorial";
+  if (month === 6 && day === 4) return "july-4";
+  if (month === 8 && dow === 1 && day <= 7) return "labor";
+  if (month === 10 && dow === 4 && day >= 22 && day <= 28) return "thanksgiving";
+  if (month === 11 && day === 25) return "christmas";
+  return null;
+}
+
+function maxSetSize(byYear: Map<number, Set<number>>): number {
+  let best = 0;
+  for (const set of byYear.values()) best = Math.max(best, set.size);
+  return best;
+}
+
+export function computeAthleteStats(activities: StatActivity[], extras: StatExtras = {}): AthleteStats {
   let total = 0;
   let run = 0;
   let ride = 0;
   let swim = 0;
+  let movingSeconds = 0;
+  let elevationMeters = 0;
+  let longestRide = 0;
+  let longestRun = 0;
+  let longestSwim = 0;
+  let early = 0;
+  let night = 0;
   const sportsByWeek = new Map<number, Set<string>>();
+  const sportsByDay = new Map<number, Set<string>>();
+  const seasonsByYear = new Map<number, Set<number>>();
+  const monthsByYear = new Map<number, Set<number>>();
+  const daysByWeek = new Map<number, Set<number>>();
+  const holidayKeys = new Set<string>();
+  const milesByMonth = new Map<number, number>();
+  const countByMonth = new Map<number, number>();
+  const sportTypes = new Set<string>();
 
   for (const a of activities) {
     total += a.distanceMeters;
-    const category = categorizeSport(a.sportType);
-    if (category === "run") run += a.distanceMeters;
-    else if (category === "ride") ride += a.distanceMeters;
-    else if (category === "swim") swim += a.distanceMeters;
+    movingSeconds += a.movingTimeSeconds ?? 0;
+    elevationMeters += a.totalElevationGain ?? 0;
+    sportTypes.add(a.sportType);
 
-    if (category !== "other") {
-      const week = weekNumber(a.startDateLocal);
-      const set = sportsByWeek.get(week) ?? new Set<string>();
-      set.add(category);
-      sportsByWeek.set(week, set);
+    const category = categorizeSport(a.sportType);
+    if (category === "run") {
+      run += a.distanceMeters;
+      longestRun = Math.max(longestRun, a.distanceMeters);
+    } else if (category === "ride") {
+      ride += a.distanceMeters;
+      longestRide = Math.max(longestRide, a.distanceMeters);
+    } else if (category === "swim") {
+      swim += a.distanceMeters;
+      longestSwim = Math.max(longestSwim, a.distanceMeters);
     }
+
+    const week = weekNumber(a.startDateLocal);
+    const day = dayNumber(a.startDateLocal);
+    if (category !== "other") {
+      const weekSet = sportsByWeek.get(week) ?? new Set<string>();
+      weekSet.add(category);
+      sportsByWeek.set(week, weekSet);
+      const daySet = sportsByDay.get(day) ?? new Set<string>();
+      daySet.add(category);
+      sportsByDay.set(day, daySet);
+    }
+
+    const hour = a.startDateLocal.getUTCHours();
+    if (hour < 6) early += 1;
+    if (hour >= 20) night += 1;
+
+    const year = a.startDateLocal.getUTCFullYear();
+    const month = a.startDateLocal.getUTCMonth();
+    const seasons = seasonsByYear.get(year) ?? new Set<number>();
+    seasons.add(seasonOfMonth(month));
+    seasonsByYear.set(year, seasons);
+    const months = monthsByYear.get(year) ?? new Set<number>();
+    months.add(month);
+    monthsByYear.set(year, months);
+
+    const weekDays = daysByWeek.get(week) ?? new Set<number>();
+    weekDays.add(a.startDateLocal.getUTCDay());
+    daysByWeek.set(week, weekDays);
+
+    const holiday = holidayOf(a.startDateLocal);
+    if (holiday) holidayKeys.add(`${year}-${holiday}`);
+
+    const monthKey = year * 12 + month;
+    milesByMonth.set(monthKey, (milesByMonth.get(monthKey) ?? 0) + a.distanceMeters);
+    countByMonth.set(monthKey, (countByMonth.get(monthKey) ?? 0) + 1);
   }
 
   const dates = activities.map((a) => a.startDateLocal);
+
+  const activeDays = [...new Set(dates.map(dayNumber))].sort((x, y) => x - y);
+  let comebacks = 0;
+  for (let i = 1; i < activeDays.length; i++) {
+    if (activeDays[i] - activeDays[i - 1] > COMEBACK_GAP_DAYS) comebacks += 1;
+  }
+
+  const sportDays = [...sportsByDay.values()];
+  const hasAll = (s: Set<string>, ...needed: string[]) => needed.every((n) => s.has(n));
+
+  const weekendWeeks = [...daysByWeek.entries()].filter(([, days]) => days.has(6) && days.has(0)).map(([w]) => w);
+
+  const now = extras.now ?? new Date();
+  const memberDays = extras.memberSince
+    ? Math.max(0, Math.floor((now.getTime() - extras.memberSince.getTime()) / MS_PER_DAY))
+    : 0;
+
   return {
     totalMiles: metersToMiles(total),
     runMiles: metersToMiles(run),
@@ -52,5 +197,24 @@ export function computeAthleteStats(activities: StatActivity[]): AthleteStats {
     dayStreak: longestDayStreak(dates),
     weekStreak: longestWeekStreak(dates),
     completeWeek: [...sportsByWeek.values()].some((s) => s.size === 3) ? 1 : 0,
+    elevationFeet: elevationMeters * METERS_TO_FEET,
+    movingHours: movingSeconds / 3600,
+    longestRideMiles: metersToMiles(longestRide),
+    longestRunMiles: metersToMiles(longestRun),
+    longestSwimMiles: metersToMiles(longestSwim),
+    earlyCount: early,
+    nightCount: night,
+    brickDays: sportDays.filter((s) => hasAll(s, "ride", "run")).length,
+    tripleBrickDays: sportDays.filter((s) => hasAll(s, "swim", "ride", "run")).length,
+    weekendStreak: longestConsecutiveRun(weekendWeeks),
+    seasonsInYear: maxSetSize(seasonsByYear),
+    monthsInYear: maxSetSize(monthsByYear),
+    comebacks,
+    holidays: holidayKeys.size,
+    bestMonthMiles: metersToMiles(Math.max(0, ...milesByMonth.values())),
+    bestMonthActivities: Math.max(0, ...countByMonth.values()),
+    sportTypes: sportTypes.size,
+    raceSignups: extras.raceSignups ?? 0,
+    memberDays,
   };
 }

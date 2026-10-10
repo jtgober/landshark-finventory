@@ -59,7 +59,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     prisma.userYearlyBadge.findMany({ where: { userId: id } }),
   ]);
   const yearSummaries = await getMemberYearSummaries(id);
-  const athleteStats = computeAthleteStats(activities);
+  const raceSignupCount = await prisma.raceSignup.count({ where: { userId: id } });
+  const athleteStats = computeAthleteStats(activities, { raceSignups: raceSignupCount, memberSince: member.createdAt });
   const badgeYear = new Date().getFullYear();
   const yearMeters = yearlyMeters(activities, badgeYear);
   const currentYearMiles = {

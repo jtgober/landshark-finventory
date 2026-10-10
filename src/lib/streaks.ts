@@ -14,7 +14,7 @@ export function weekNumber(d: Date): number {
   return Math.floor((dayNumber(d) + 3) / 7);
 }
 
-function longestConsecutiveRun(values: Iterable<number>): number {
+export function longestConsecutiveRun(values: Iterable<number>): number {
   const sorted = [...new Set(values)].sort((a, b) => a - b);
   let best = 0;
   let run = 0;

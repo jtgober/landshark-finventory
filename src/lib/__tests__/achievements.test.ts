@@ -27,19 +27,39 @@ describe("computeAthleteStats", () => {
   it("flags a week with run, ride and swim, but not two sports or other sports", () => {
     const two = computeAthleteStats([act("2027-03-01", "Run", 3), act("2027-03-02", "Ride", 10)]);
     expect(two.completeWeek).toBe(0);
-    const withYoga = computeAthleteStats([act("2027-03-01", "Run", 3), act("2027-03-02", "Ride", 10), act("2027-03-03", "Yoga", 0)]);
+    const withYoga = computeAthleteStats([
+      act("2027-03-01", "Run", 3),
+      act("2027-03-02", "Ride", 10),
+      act("2027-03-03", "Yoga", 0),
+    ]);
     expect(withYoga.completeWeek).toBe(0);
-    const all = computeAthleteStats([act("2027-03-01", "Run", 3), act("2027-03-03", "Ride", 10), act("2027-03-07", "Swim", 1)]);
+    const all = computeAthleteStats([
+      act("2027-03-01", "Run", 3),
+      act("2027-03-03", "Ride", 10),
+      act("2027-03-07", "Swim", 1),
+    ]);
     expect(all.completeWeek).toBe(1);
   });
 
   it("does not stitch a complete week across the Sunday/Monday boundary", () => {
-    const split = computeAthleteStats([act("2027-03-06", "Run", 3), act("2027-03-07", "Ride", 10), act("2027-03-08", "Swim", 1)]);
+    const split = computeAthleteStats([
+      act("2027-03-06", "Run", 3),
+      act("2027-03-07", "Ride", 10),
+      act("2027-03-08", "Swim", 1),
+    ]);
     expect(split.completeWeek).toBe(0);
   });
 });
 
 describe("evaluateAchievements", () => {
+  it("lists every family in the display order with a group", async () => {
+    const { ACHIEVEMENT_FAMILIES } = await import("../achievements");
+    expect(new Set(ACHIEVEMENT_FAMILIES.map((f) => f.key)).size).toBe(ACHIEVEMENT_FAMILIES.length);
+    for (const f of ACHIEVEMENT_FAMILIES) expect(f.group.length, f.key).toBeGreaterThan(0);
+    // No achievement is orphaned from the page.
+    expect(new Set(ACHIEVEMENTS.map((a) => a.family))).toEqual(new Set(ACHIEVEMENT_FAMILIES.map((f) => f.key)));
+  });
+
   it("has unique keys", () => {
     expect(new Set(ACHIEVEMENTS.map((a) => a.key)).size).toBe(ACHIEVEMENTS.length);
   });
@@ -53,7 +73,9 @@ describe("evaluateAchievements", () => {
 
   it("awards all lower tiers along with the highest", () => {
     const keys = evaluateAchievements(computeAthleteStats([act("2027-03-01", "Ride", 1100)]));
-    expect(keys).toEqual(expect.arrayContaining(["ride-miles-250", "ride-miles-1000", "total-miles-500", "total-miles-1000"]));
+    expect(keys).toEqual(
+      expect.arrayContaining(["ride-miles-250", "ride-miles-1000", "total-miles-500", "total-miles-1000"]),
+    );
     expect(keys).not.toContain("ride-miles-2500");
   });
 
@@ -94,7 +116,8 @@ describe("badge definitions", () => {
       expect(defs.length, f.key).toBeGreaterThan(0);
       const thresholds = defs.map((d) => d.threshold);
       expect(thresholds, f.key).toEqual([...thresholds].sort((a, b) => a - b));
-      if (f.key !== "every-discipline") expect(defs.map((d) => d.level), f.key).toEqual(defs.map((_, i) => i + 1));
+      expect(new Set(defs.map((d) => d.level)).size, f.key).toBe(defs.length);
+      expect(Math.max(...defs.map((d) => d.level)), f.key).toBeLessThanOrEqual(4);
     }
   });
 

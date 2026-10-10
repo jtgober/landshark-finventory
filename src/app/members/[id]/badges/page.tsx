@@ -8,6 +8,7 @@ import { AchievementBadge, YearlyMedal } from "@/components/BadgeArt";
 import { ACHIEVEMENTS, ACHIEVEMENT_FAMILIES } from "@/lib/achievements";
 import { computeAthleteStats } from "@/lib/athleteStats";
 import { metersToMiles } from "@/lib/units";
+import { formatProgress } from "@/lib/badgeProgress";
 import {
   TIERS,
   YEARLY_BADGE_LABELS,
@@ -22,6 +23,7 @@ import {
 const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
 const TIER_LABEL: Record<BadgeTier, string> = { BRONZE: "Bronze", SILVER: "Silver", GOLD: "Gold" };
+const GROUPS = [...new Set(ACHIEVEMENT_FAMILIES.map((f) => f.group))];
 const YEARLY_TYPES: YearlyBadgeType[] = ["RIDE", "RUN", "SWIM", "COMPLETE"];
 
 export default async function MemberBadgesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,19 +31,29 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
   if (!session?.user) redirect("/");
 
   const { id } = await params;
-  const member = await prisma.user.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+  const member = await prisma.user.findUnique({
+    where: { id },
+    select: { firstName: true, lastName: true, createdAt: true },
+  });
   if (!member) notFound();
 
-  const [activities, earned, yearly] = await Promise.all([
+  const [activities, earned, yearly, raceSignups] = await Promise.all([
     prisma.activity.findMany({
       where: { userId: id },
-      select: { startDateLocal: true, sportType: true, distanceMeters: true },
+      select: {
+        startDateLocal: true,
+        sportType: true,
+        distanceMeters: true,
+        movingTimeSeconds: true,
+        totalElevationGain: true,
+      },
     }),
     prisma.userAchievement.findMany({ where: { userId: id }, select: { key: true, awardedAt: true } }),
     prisma.userYearlyBadge.findMany({ where: { userId: id } }),
+    prisma.raceSignup.count({ where: { userId: id } }),
   ]);
 
-  const stats = computeAthleteStats(activities);
+  const stats = computeAthleteStats(activities, { raceSignups, memberSince: member.createdAt });
   const earnedAt = new Map(earned.map((e) => [e.key, e.awardedAt]));
   const earnedCount = ACHIEVEMENTS.filter((a) => earnedAt.has(a.key)).length;
 
@@ -69,58 +81,61 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
           to the site.
         </p>
 
-        <div className="space-y-4">
-          {ACHIEVEMENT_FAMILIES.map((family) => {
-            const defs = ACHIEVEMENTS.filter((a) => a.family === family.key).sort((a, b) => a.level - b.level);
-            const next = defs.find((d) => !earnedAt.has(d.key) && stats[d.metric] < d.threshold);
-            const familyEarned = defs.filter((d) => earnedAt.has(d.key)).length;
-            return (
-              <section key={family.key} className="rounded-lg border bg-white p-4">
-                <div className="mb-3 flex items-baseline justify-between gap-2">
-                  <h2 className="font-semibold">{family.title}</h2>
-                  <span className="text-xs text-gray-500">
-                    {familyEarned} / {defs.length}
-                  </span>
-                </div>
-                <ul className="flex flex-wrap gap-x-4 gap-y-3">
-                  {defs.map((def) => {
-                    const at = earnedAt.get(def.key);
-                    return (
-                      <li key={def.key} className="flex w-[84px] flex-col items-center text-center">
-                        <AchievementBadge def={def} earned={!!at} size={76} />
-                        <p className={`mt-1 text-xs font-medium ${at ? "text-gray-900" : "text-gray-400"}`}>
-                          {def.name}
-                        </p>
-                        <p className="text-[11px] text-gray-500">{at ? fmtDate(at) : "Locked"}</p>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {next && family.key !== "every-discipline" && (
-                  <div className="mt-3 border-t pt-3">
-                    <div className="mb-1 flex justify-between gap-2 text-xs text-gray-600">
-                      <span>Next: {next.name}</span>
-                      <span className="shrink-0">
-                        {fmtNum(stats[next.metric])} / {fmtNum(next.threshold)}
+        {GROUPS.map((group) => (
+          <div key={group} className="mt-6 first:mt-0">
+            <h2 className="mb-2 text-lg font-bold">{group}</h2>
+            <div className="space-y-4">
+              {ACHIEVEMENT_FAMILIES.filter((f) => f.group === group).map((family) => {
+                const defs = ACHIEVEMENTS.filter((a) => a.family === family.key).sort((a, b) => a.level - b.level);
+                const next = defs.find((d) => !earnedAt.has(d.key) && stats[d.metric] < d.threshold);
+                const familyEarned = defs.filter((d) => earnedAt.has(d.key)).length;
+                return (
+                  <section key={family.key} className="rounded-lg border bg-white p-4">
+                    <div className="mb-3 flex items-baseline justify-between gap-2">
+                      <h2 className="font-semibold">{family.title}</h2>
+                      <span className="text-xs text-gray-500">
+                        {familyEarned} / {defs.length}
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-gray-100">
-                      <div
-                        className="h-2 rounded-full bg-orange-500"
-                        style={{ width: `${Math.round(Math.min(1, stats[next.metric] / next.threshold) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {next && family.key === "every-discipline" && (
-                  <p className="mt-3 border-t pt-3 text-xs text-gray-600">
-                    Run, ride and swim all in the same Monday to Sunday week.
-                  </p>
-                )}
-              </section>
-            );
-          })}
-        </div>
+                    <ul className="flex flex-wrap gap-x-4 gap-y-3">
+                      {defs.map((def) => {
+                        const at = earnedAt.get(def.key);
+                        return (
+                          <li key={def.key} className="flex w-[84px] flex-col items-center text-center">
+                            <AchievementBadge def={def} earned={!!at} size={76} />
+                            <p className={`mt-1 text-xs font-medium ${at ? "text-gray-900" : "text-gray-400"}`}>
+                              {def.name}
+                            </p>
+                            <p className="text-[11px] text-gray-500">{at ? fmtDate(at) : "Locked"}</p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {next && family.key !== "every-discipline" && (
+                      <div className="mt-3 border-t pt-3">
+                        <div className="mb-1 flex justify-between gap-2 text-xs text-gray-600">
+                          <span>Next: {next.name}</span>
+                          <span className="shrink-0">{formatProgress(stats[next.metric], next.threshold)}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-gray-100">
+                          <div
+                            className="h-2 rounded-full bg-orange-500"
+                            style={{ width: `${Math.round(Math.min(1, stats[next.metric] / next.threshold) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {next && family.key === "every-discipline" && (
+                      <p className="mt-3 border-t pt-3 text-xs text-gray-600">
+                        Run, ride and swim all in the same Monday to Sunday week.
+                      </p>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         <h2 className="mb-1 mt-8 text-xl font-bold">Yearly badges</h2>
         <p className="mb-4 text-sm text-gray-500">

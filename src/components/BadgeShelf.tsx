@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatProgress } from "@/lib/badgeProgress";
 import { AchievementBadge, YearlyMedal } from "@/components/BadgeArt";
 import { ACHIEVEMENTS_BY_KEY, nextUpAchievements } from "@/lib/achievements";
 import type { AthleteStats } from "@/lib/athleteStats";
@@ -119,7 +120,7 @@ export default function BadgeShelf({
                 <div className="mb-1 flex justify-between gap-2 text-sm">
                   <span className="font-medium">{n.def.name}</span>
                   <span className="shrink-0 text-gray-500">
-                    {n.def.metric === "completeWeek" ? "" : `${fmtMiles(n.current)} / ${fmtMiles(n.def.threshold)}`}
+                    {n.def.metric === "completeWeek" ? "" : formatProgress(n.current, n.def.threshold)}
                   </span>
                 </div>
                 <ProgressBar value={n.progress} />
