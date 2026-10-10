@@ -116,6 +116,9 @@ Admins get an **Admin** link in the nav bar with:
   year-over-year results stable. Re-running refreshes the snapshot.
 
 ### Achievements
+Each lifetime achievement has a hexagon badge (bronze, silver, gold, then platinum by level) and each yearly
+badge a medal on a ribbon, drawn as inline SVG in `src/components/BadgeArt.tsx`. Every member has a badges page at
+`/members/<id>/badges` (linked as **Badges** in the nav) showing earned and locked badges with progress to the next one.
 - **Lifetime achievements** (volume and consistency) are defined in `src/lib/achievements.ts`.
 - **Yearly badges** (bronze/silver/gold, once per calendar year, starting in 2027) are defined in
   `src/lib/yearlyBadges.ts`. Levels in miles: Bike 2,500 / 5,000 / 7,500, Run 1,000 / 1,500 / 2,000,

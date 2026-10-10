@@ -75,3 +75,30 @@ describe("nextUpAchievements", () => {
     expect(run?.progress).toBeCloseTo(0.6);
   });
 });
+
+describe("badge definitions", () => {
+  it("puts every achievement in a known family with a label and glyph", async () => {
+    const { ACHIEVEMENT_FAMILIES } = await import("../achievements");
+    const families = new Set(ACHIEVEMENT_FAMILIES.map((f) => f.key));
+    for (const a of ACHIEVEMENTS) {
+      expect(families.has(a.family), a.key).toBe(true);
+      expect(a.label.length, a.key).toBeGreaterThan(0);
+      expect(a.glyph, a.key).toBeTruthy();
+    }
+  });
+
+  it("numbers levels 1..n within each family, in threshold order", async () => {
+    const { ACHIEVEMENT_FAMILIES } = await import("../achievements");
+    for (const f of ACHIEVEMENT_FAMILIES) {
+      const defs = ACHIEVEMENTS.filter((a) => a.family === f.key).sort((a, b) => a.level - b.level);
+      expect(defs.length, f.key).toBeGreaterThan(0);
+      const thresholds = defs.map((d) => d.threshold);
+      expect(thresholds, f.key).toEqual([...thresholds].sort((a, b) => a - b));
+      if (f.key !== "every-discipline") expect(defs.map((d) => d.level), f.key).toEqual(defs.map((_, i) => i + 1));
+    }
+  });
+
+  it("has unique keys", () => {
+    expect(new Set(ACHIEVEMENTS.map((a) => a.key)).size).toBe(ACHIEVEMENTS.length);
+  });
+});

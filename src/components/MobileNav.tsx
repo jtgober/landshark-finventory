@@ -10,7 +10,7 @@ const LINKS = [
   { href: "/races", label: "Races" },
 ];
 
-export default function MobileNav({ isAdmin }: { isAdmin: boolean }) {
+export default function MobileNav({ isAdmin, userId }: { isAdmin: boolean; userId: string | null }) {
   const pathname = usePathname();
   const [openForPath, setOpenForPath] = useState<string | null>(null);
   // The menu is "open" only for the page it was opened on, so any route change closes it.
@@ -25,8 +25,13 @@ export default function MobileNav({ isAdmin }: { isAdmin: boolean }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin" }] : LINKS;
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const baseLinks = userId ? [...LINKS, { href: `/members/${userId}/badges`, label: "Badges" }] : LINKS;
+  const links = isAdmin ? [...baseLinks, { href: "/admin", label: "Admin" }] : baseLinks;
+  const isActive = (href: string) => {
+    // The badges page lives under /members/<id>, but only the Badges link should light up there.
+    if (href === "/members" && pathname.endsWith("/badges")) return false;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   const desktopClass = (href: string) =>
     `text-sm hover:text-gray-900 ${

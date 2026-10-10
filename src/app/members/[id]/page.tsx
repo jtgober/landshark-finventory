@@ -152,6 +152,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         )}
 
         <BadgeShelf
+          memberId={id}
           stats={athleteStats}
           earned={earnedAchievements}
           yearlyBadges={yearlyBadges}

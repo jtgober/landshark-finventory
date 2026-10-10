@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { AchievementBadge, YearlyMedal } from "@/components/BadgeArt";
 import { ACHIEVEMENTS_BY_KEY, nextUpAchievements } from "@/lib/achievements";
 import type { AthleteStats } from "@/lib/athleteStats";
 import {
@@ -47,21 +49,26 @@ function YearlyBadgeChip({ badge }: { badge: EarnedYearlyBadge }) {
   const style = TIER_STYLES[badge.tier];
   const earnedAt = badge.tier === "GOLD" ? badge.goldAt : badge.tier === "SILVER" ? badge.silverAt : badge.bronzeAt;
   return (
-    <li className={`rounded-lg border-2 p-3 ${style.chip}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide">{style.label}</p>
-      <p className="font-semibold">{YEARLY_BADGE_LABELS[badge.badge]}</p>
-      {earnedAt && <p className="text-xs opacity-80">{fmtDate(earnedAt)}</p>}
+    <li className="flex flex-col items-center text-center">
+      <YearlyMedal type={badge.badge} tier={badge.tier} size={80} />
+      <p className="mt-1 text-sm font-semibold">{YEARLY_BADGE_LABELS[badge.badge]}</p>
+      <p className="text-xs text-gray-500">
+        {style.label}
+        {earnedAt ? ` · ${fmtDate(earnedAt)}` : ""}
+      </p>
     </li>
   );
 }
 
 export default function BadgeShelf({
+  memberId,
   stats,
   earned,
   yearlyBadges,
   currentYear,
   currentYearMiles,
 }: {
+  memberId: string;
   stats: AthleteStats;
   earned: EarnedAchievement[];
   yearlyBadges: EarnedYearlyBadge[];
@@ -72,14 +79,21 @@ export default function BadgeShelf({
   const earnedSorted = [...earned]
     .filter((e) => ACHIEVEMENTS_BY_KEY.has(e.key))
     .sort((a, b) => b.awardedAt.getTime() - a.awardedAt.getTime());
-  const nextUp = nextUpAchievements(stats, earnedKeys).sort((a, b) => b.progress - a.progress).slice(0, 4);
+  const nextUp = nextUpAchievements(stats, earnedKeys)
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 4);
 
   const yearsWithBadges = [...new Set(yearlyBadges.map((b) => b.year))].sort((a, b) => b - a);
   const yearlyActive = currentYear >= YEARLY_BADGES_START_YEAR;
 
   return (
     <section className="mb-6">
-      <h2 className="mb-3 text-lg font-semibold">Achievements</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Achievements</h2>
+        <Link href={`/members/${memberId}/badges`} className="text-sm font-medium text-orange-700">
+          All badges &rarr;
+        </Link>
+      </div>
 
       <div className="mb-4 rounded-lg border bg-white p-4">
         {earnedSorted.length === 0 ? (
@@ -89,8 +103,8 @@ export default function BadgeShelf({
             {earnedSorted.map((e) => {
               const def = ACHIEVEMENTS_BY_KEY.get(e.key)!;
               return (
-                <li key={e.key} title={`${def.description} Earned ${fmtDate(e.awardedAt)}.`} className="rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-sm text-orange-900">
-                  {def.name}
+                <li key={e.key} title={`${def.name}. ${def.description} Earned ${fmtDate(e.awardedAt)}.`}>
+                  <AchievementBadge def={def} earned size={60} />
                 </li>
               );
             })}
@@ -121,7 +135,7 @@ export default function BadgeShelf({
         {yearsWithBadges.map((year) => (
           <div key={year} className="mb-4">
             <p className="mb-2 text-sm font-semibold">{year}</p>
-            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {yearlyBadges
                 .filter((b) => b.year === year)
                 .sort((a, b) => tierRank(b.tier) - tierRank(a.tier))
@@ -178,4 +192,3 @@ export default function BadgeShelf({
     </section>
   );
 }
-
