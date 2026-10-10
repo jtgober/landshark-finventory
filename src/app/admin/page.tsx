@@ -34,7 +34,7 @@ export default async function AdminHomePage() {
             </Link>
           </li>
           <li className="rounded-lg border bg-white p-4">
-            <p className="font-medium">Achievements</p>
+            <p className="font-medium">Trophies</p>
             <p className="mb-3 text-sm text-gray-500">
               Re-check every member&apos;s stored activity and award anything newly earned. Safe to run any time.
             </p>

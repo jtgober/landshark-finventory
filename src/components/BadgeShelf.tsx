@@ -90,15 +90,15 @@ export default function BadgeShelf({
   return (
     <section className="mb-6">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Achievements</h2>
-        <Link href={`/members/${memberId}/badges`} className="text-sm font-medium text-orange-700">
-          All badges &rarr;
+        <h2 className="text-lg font-semibold">Trophies</h2>
+        <Link href={`/members/${memberId}/trophy-case`} className="text-sm font-medium text-orange-700">
+          Trophy case &rarr;
         </Link>
       </div>
 
       <div className="mb-4 rounded-lg border bg-white p-4">
         {earnedSorted.length === 0 ? (
-          <p className="text-sm text-gray-500">No achievements yet. Log some activity to start earning them.</p>
+          <p className="text-sm text-gray-500">No trophies yet. Log some activity to start earning them.</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {earnedSorted.map((e) => {
@@ -131,7 +131,7 @@ export default function BadgeShelf({
         <p className="mt-4 text-xs text-gray-500">Counts activity synced since this member connected to the site.</p>
       </div>
 
-      <h3 className="mb-3 text-base font-semibold">Yearly Badges</h3>
+      <h3 className="mb-3 text-base font-semibold">Yearly Trophies</h3>
       <div className="rounded-lg border bg-white p-4">
         {yearsWithBadges.map((year) => (
           <div key={year} className="mb-4">
@@ -171,7 +171,7 @@ export default function BadgeShelf({
           </div>
         ) : (
           <div>
-            <p className="mb-1 text-sm font-medium">Yearly badges start in {YEARLY_BADGES_START_YEAR}</p>
+            <p className="mb-1 text-sm font-medium">Yearly trophies start in {YEARLY_BADGES_START_YEAR}</p>
             <p className="mb-3 text-sm text-gray-500">
               Rare, calendar-year awards in bronze, silver and gold. Miles needed within the year:
             </p>

@@ -74,7 +74,7 @@ async function buildRows(type: ExportType, year: number): Promise<CsvCell[][]> {
   const rows: CsvCell[][] = [[
     "Member", "City", "Year", "Status", "Total (mi)", "Bike (mi)", "Run (mi)", "Swim (mi)", "Activities", "Moving time (h)",
     "Elevation (ft)", "Longest effort (mi)", "Best day streak", "Best week streak", "Kudos received", "Kudos given",
-    "Races entered", "Achievements earned", "Bike badge", "Run badge", "Swim badge", "Complete Athlete badge",
+    "Races entered", "Trophies earned", "Bike trophy", "Run trophy", "Swim trophy", "Complete Athlete trophy",
   ]];
   for (let i = 0; i < users.length; i += 10) {
     const batch = await Promise.all(users.slice(i, i + 10).map((u) => getMemberYearSummary(u.id, year)));

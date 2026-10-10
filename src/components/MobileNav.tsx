@@ -25,11 +25,11 @@ export default function MobileNav({ isAdmin, userId }: { isAdmin: boolean; userI
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const baseLinks = userId ? [...LINKS, { href: `/members/${userId}/badges`, label: "Badges" }] : LINKS;
+  const baseLinks = userId ? [...LINKS, { href: `/members/${userId}/trophy-case`, label: "Trophy Case" }] : LINKS;
   const links = isAdmin ? [...baseLinks, { href: "/admin", label: "Admin" }] : baseLinks;
   const isActive = (href: string) => {
-    // The badges page lives under /members/<id>, but only the Badges link should light up there.
-    if (href === "/members" && pathname.endsWith("/badges")) return false;
+    // The trophy case lives under /members/<id>, but only the Trophy Case link should light up there.
+    if (href === "/members" && pathname.endsWith("/trophy-case")) return false;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 

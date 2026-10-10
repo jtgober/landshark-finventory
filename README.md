@@ -104,34 +104,34 @@ npx prisma studio   # open the User table, tick isAdmin on your own row
 
 Admins get an **Admin** link in the nav bar with:
 - **Club metrics and exports** (`/admin/metrics`): totals, monthly trends, active and new members,
-  top members by sport, race popularity, yearly badge counts, year-over-year, inactive members.
+  top members by sport, race popularity, yearly trophy counts, year-over-year, inactive members.
 - **CSV exports** (members, activities, races, race signups) for any year. Files open directly in
   Excel or Google Sheets. They contain member names but never OAuth tokens or Strava athlete IDs, and
   text that looks like a spreadsheet formula is neutralized.
 - **Activity log** (`/admin/activity`): members in join order (newest first) with join time, city, and how many
   activities have synced, plus joined-in-7/30-days counts. Read from `User.createdAt`, so it needs no extra table. Members whose saved Strava scopes lack `activity:read` (they unticked the
   permission on Strava's consent screen, so nothing they record can sync) get a warning badge and a summary banner.
-- **Recompute achievements**: re-checks everyone's stored activity. New activity is checked
+- **Recompute trophies**: re-checks everyone's stored activity. New activity is checked
   automatically by the Strava webhook; run this after deploying or changing thresholds.
 - **Finalize a year**: freezes every member's totals for that year into `AthleteYearSummary`.
   Strava deletes remove activities from our database, so finalize after the year ends to keep
   year-over-year results stable. Re-running refreshes the snapshot.
 
 ### Achievements
-There are about 80 lifetime achievements in 26 ladders, grouped on the badges page: distance and time (total, run, ride,
+There are about 80 lifetime achievements in 26 ladders, grouped in the trophy case: distance and time (total, run, ride,
 swim, activities, time on feet, climber), big days (longest single ride, run, swim), consistency (daily, weekly and
 weekend streaks, comeback, monthly challenges), triathlon (all three sports, brick, triple brick), habits (early bird,
-night owl, four seasons, variety), holidays (a separate badge with its own icon and colors for each of 12
+night owl, four seasons, variety), holidays (a separate trophy with its own icon and colors for each of 12
 holidays: New Year's Day, Valentine's Day, St. Patrick's Day, Easter, Derby Day, Memorial Day, Independence Day, Labor
-Day, Halloween, Thanksgiving, Christmas, New Year's Eve, plus collector badges) and club (race ready, club regular). Definitions live in
+Day, Halloween, Thanksgiving, Christmas, New Year's Eve, plus collector trophies) and club (race ready, club regular). Definitions live in
 `src/lib/achievements.ts`; the holiday date rules (including Easter) are in `src/lib/holidays.ts`; the measures behind them are computed in `src/lib/athleteStats.ts`. A few use data beyond
-activities: race signups and the join date. Race badges are also checked when someone signs up for a race; club
+activities: race signups and the join date. Race trophies are also checked when someone signs up for a race; club
 regular is checked on the member's next activity or when an admin runs Recompute achievements.
-Each lifetime achievement has a hexagon badge (bronze, silver, gold, then platinum by level) and each yearly
-badge a medal on a ribbon, drawn as inline SVG in `src/components/BadgeArt.tsx`. Every member has a badges page at
-`/members/<id>/badges` (linked as **Badges** in the nav) showing earned and locked badges with progress to the next one.
+Each lifetime achievement is a hexagon trophy (bronze, silver, gold, then platinum by level) and each yearly
+trophy a medal on a ribbon, drawn as inline SVG in `src/components/BadgeArt.tsx`. Every member has a trophy case at
+`/members/<id>/trophy-case` (linked as **Trophy Case** in the nav; the old `/badges` link redirects) showing earned and locked trophies with progress to the next one.
 - **Lifetime achievements** (volume and consistency) are defined in `src/lib/achievements.ts`.
-- **Yearly badges** (bronze/silver/gold, once per calendar year, starting in 2027) are defined in
+- **Yearly trophies** (bronze/silver/gold, once per calendar year, starting in 2027) are defined in
   `src/lib/yearlyBadges.ts`. Levels in miles: Bike 2,500 / 5,000 / 7,500, Run 1,000 / 1,500 / 2,000,
   Swim 150 / 300 / 500. Complete Athlete takes the lowest of the three sport levels.
 - Awards are never revoked, even if Strava activities are later deleted. Only activity synced since a

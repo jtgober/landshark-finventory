@@ -182,7 +182,7 @@ export default async function AdminMetricsPage({ searchParams }: { searchParams:
         </section>
 
         <section className="mb-6">
-          <h2 className="mb-3 text-lg font-semibold">Yearly badges ({year})</h2>
+          <h2 className="mb-3 text-lg font-semibold">Yearly trophies ({year})</h2>
           <div className="overflow-x-auto rounded-lg border bg-white">
             <table className="w-full min-w-max text-left text-sm">
               <thead>

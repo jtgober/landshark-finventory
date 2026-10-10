@@ -16,7 +16,7 @@ export default function RecomputeButton() {
       }
       const d = (await res.json()) as { members: number; achievementsCreated: number; yearlyBadgeWrites: number };
       setMessage(
-        `Checked ${d.members} members: ${d.achievementsCreated} new achievements, ${d.yearlyBadgeWrites} yearly badge updates.`,
+        `Checked ${d.members} members: ${d.achievementsCreated} new trophies, ${d.yearlyBadgeWrites} yearly trophy updates.`,
       );
     });
   };
@@ -28,7 +28,7 @@ export default function RecomputeButton() {
         disabled={isPending}
         className="min-h-11 rounded-full border border-orange-600 bg-orange-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
       >
-        {isPending ? "Recomputing..." : "Recompute achievements"}
+        {isPending ? "Recomputing..." : "Recompute trophies"}
       </button>
       {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
     </div>
