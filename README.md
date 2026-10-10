@@ -19,6 +19,8 @@ leaderboard, and give each other in-app kudos. Built with Next.js
   members, since steady-state traffic is roughly one API call per new
   activity. If backfill is wanted later, it should be done as a
   rate-limited background job, staggered across users, not a bulk sync.
+- The dashboard totals each period in the database (grouped by member and sport) rather than loading every activity,
+  and the recent activity feed shows 10 at a time with Newer/Older paging.
 - The dashboard aggregates stored activities into a leaderboard
   (this week / this month / all time) and a recent activity feed where
   members can give kudos.
