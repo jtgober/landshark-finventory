@@ -22,7 +22,7 @@ interface LeaderboardEntry {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; sport?: string; offset?: string }>;
+  searchParams: Promise<{ range?: string; sport?: string; offset?: string; by?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
@@ -34,6 +34,10 @@ export default async function DashboardPage({
       ? resolvedSearchParams.range
       : "week";
   const sport = SPORT_TABS.some((t) => t.key === resolvedSearchParams.sport) ? resolvedSearchParams.sport! : "total";
+  // "Climbing" ranking only makes sense for the two sports that gain elevation.
+  const canRankByElevation = sport === "run" || sport === "ride";
+  const rankByElevation = canRankByElevation && resolvedSearchParams.by === "elevation";
+  const byParam = rankByElevation ? "&by=elevation" : "";
   const offset = supportsOffset(range) ? parseOffset(resolvedSearchParams.offset, range) : 0;
 
   const { since, until } = rangeWindow(range, offset);
@@ -74,7 +78,11 @@ export default async function DashboardPage({
     entry.count += 1;
     leaderboardByUser.set(activity.userId, entry);
   }
-  const leaderboard = [...leaderboardByUser.values()].sort((a, b) => b.distanceMeters - a.distanceMeters);
+  const leaderboard = [...leaderboardByUser.values()].sort((a, b) =>
+    rankByElevation
+      ? b.elevationMeters - a.elevationMeters || b.distanceMeters - a.distanceMeters
+      : b.distanceMeters - a.distanceMeters,
+  );
 
   const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
   const teamActivityCount = leaderboard.reduce((sum, entry) => sum + entry.count, 0);
@@ -103,7 +111,7 @@ export default async function DashboardPage({
               {PRIMARY_RANGES.map((r) => (
                 <Link
                   key={r.key}
-                  href={`/dashboard?range=${r.key}&sport=${sport}`}
+                  href={`/dashboard?range=${r.key}&sport=${sport}${byParam}`}
                   className={`rounded-full border px-3 py-2 text-center sm:py-1 ${
                     range === r.key ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
                   }`}
@@ -117,14 +125,14 @@ export default async function DashboardPage({
             <div className="flex flex-col items-center gap-2 text-sm sm:flex-row sm:gap-3">
               <div className="flex shrink-0 items-center gap-3">
                 <Link
-                  href={`/dashboard?range=${range}&sport=${sport}&offset=${offset - 1}`}
+                  href={`/dashboard?range=${range}&sport=${sport}${byParam}&offset=${offset - 1}`}
                   className="whitespace-nowrap rounded-full border border-gray-300 px-3 py-1 text-gray-600"
                 >
                   &larr; Prev
                 </Link>
                 {offset < 0 ? (
                   <Link
-                    href={`/dashboard?range=${range}&sport=${sport}&offset=${offset + 1}`}
+                    href={`/dashboard?range=${range}&sport=${sport}${byParam}&offset=${offset + 1}`}
                     className="whitespace-nowrap rounded-full border border-gray-300 px-3 py-1 text-gray-600"
                   >
                     Next &rarr;
@@ -144,7 +152,7 @@ export default async function DashboardPage({
               {pastYears.map((y) => (
                 <Link
                   key={y}
-                  href={`/dashboard?range=${y}&sport=${sport}`}
+                  href={`/dashboard?range=${y}&sport=${sport}${byParam}`}
                   className={`rounded-full border px-3 py-1 ${
                     range === String(y) ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
                   }`}
@@ -198,7 +206,7 @@ export default async function DashboardPage({
               {SPORT_TABS.map((t) => (
                 <Link
                   key={t.key}
-                  href={`/dashboard?range=${range}&sport=${t.key}&offset=${offset}`}
+                  href={`/dashboard?range=${range}&sport=${t.key}${t.key === "run" || t.key === "ride" ? byParam : ""}&offset=${offset}`}
                   className={`rounded-full border px-3 py-1 ${
                     sport === t.key ? "border-orange-600 bg-orange-600 text-white" : "border-gray-300 text-gray-600"
                   }`}
@@ -208,6 +216,35 @@ export default async function DashboardPage({
               ))}
             </div>
           </div>
+          {canRankByElevation && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-gray-500">Rank by:</span>
+              {[
+                {
+                  key: "distance",
+                  label: "Distance",
+                  href: `/dashboard?range=${range}&sport=${sport}&offset=${offset}`,
+                },
+                {
+                  key: "elevation",
+                  label: "Climbing",
+                  href: `/dashboard?range=${range}&sport=${sport}&by=elevation&offset=${offset}`,
+                },
+              ].map((o) => (
+                <Link
+                  key={o.key}
+                  href={o.href}
+                  className={`rounded-full border px-3 py-1 ${
+                    (o.key === "elevation") === rankByElevation
+                      ? "border-orange-600 bg-orange-600 text-white"
+                      : "border-gray-300 text-gray-600"
+                  }`}
+                >
+                  {o.label}
+                </Link>
+              ))}
+            </div>
+          )}
           <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">
             {leaderboard.length === 0 && <li className="p-4 text-sm text-gray-500">No activity yet for {label}.</li>}
             {leaderboard.map((entry, i) => (
@@ -222,12 +259,16 @@ export default async function DashboardPage({
                     {entry.name}
                   </Link>
                   {showEntryElevation && (
-                    <p className="truncate text-xs text-gray-500">{formatElevation(entry.elevationMeters)} climbed</p>
+                    <p className="truncate text-xs text-gray-500">
+                      {rankByElevation
+                        ? formatDistance(entry.distanceMeters)
+                        : `${formatElevation(entry.elevationMeters)} climbed`}
+                    </p>
                   )}
                 </div>
                 <span className="hidden shrink-0 text-sm text-gray-500 sm:inline">{entry.count} activities</span>
-                <span className="w-20 shrink-0 whitespace-nowrap text-right text-sm font-semibold sm:w-24 sm:text-base">
-                  {formatDistance(entry.distanceMeters)}
+                <span className="w-24 shrink-0 whitespace-nowrap text-right text-sm font-semibold sm:text-base">
+                  {rankByElevation ? formatElevation(entry.elevationMeters) : formatDistance(entry.distanceMeters)}
                 </span>
               </li>
             ))}
