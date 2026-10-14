@@ -1,25 +1,19 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDistance, formatDuration, formatElevation } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
 import { isValidRange, parseOffset, periodLabel, PRIMARY_RANGES, rangeWindow, supportsOffset } from "@/lib/dateRange";
+import { buildLeaderboard, type GroupRow } from "@/lib/leaderboard";
+import { buildCaption, canShareByElevation, cardTitle, isShareSport, periodPhrase } from "@/lib/shareTop5";
 import KudosButton from "@/components/KudosButton";
+import ShareTop5 from "@/components/ShareTop5";
 import NavBar from "@/components/NavBar";
 
 const RECENT_PAGE_SIZE = 10;
-
-interface LeaderboardEntry {
-  userId: string;
-  name: string;
-  image: string | null;
-  distanceMeters: number;
-  movingTimeSeconds: number;
-  elevationMeters: number;
-  count: number;
-}
 
 export default async function DashboardPage({
   searchParams,
@@ -87,38 +81,47 @@ export default async function DashboardPage({
     .sort((a, b) => b - a);
   const usersById = new Map(users.map((u) => [u.id, u]));
 
-  const leaderboardByUser = new Map<string, LeaderboardEntry>();
+  const rows: GroupRow[] = groups.map((g) => ({
+    userId: g.userId,
+    sportType: g.sportType,
+    distanceMeters: g._sum.distanceMeters ?? 0,
+    movingTimeSeconds: g._sum.movingTimeSeconds ?? 0,
+    elevationMeters: g._sum.totalElevationGain ?? 0,
+    count: g._count._all,
+  }));
+
   // Elevation tiles always cover the whole range, whichever sport tab is selected.
   let teamBikeElevationMeters = 0;
   let teamRunElevationMeters = 0;
-  for (const group of groups) {
-    const category = categorizeSport(group.sportType);
-    const elevation = group._sum.totalElevationGain ?? 0;
-    if (category === "ride") teamBikeElevationMeters += elevation;
-    else if (category === "run") teamRunElevationMeters += elevation;
-
-    if (sport !== "total" && category !== sport) continue;
-    const user = usersById.get(group.userId);
-    const entry = leaderboardByUser.get(group.userId) ?? {
-      userId: group.userId,
-      name: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Club Member",
-      image: user?.profileImageUrl ?? null,
-      distanceMeters: 0,
-      movingTimeSeconds: 0,
-      elevationMeters: 0,
-      count: 0,
-    };
-    entry.distanceMeters += group._sum.distanceMeters ?? 0;
-    entry.movingTimeSeconds += group._sum.movingTimeSeconds ?? 0;
-    entry.elevationMeters += elevation;
-    entry.count += group._count._all;
-    leaderboardByUser.set(group.userId, entry);
+  for (const row of rows) {
+    const category = categorizeSport(row.sportType);
+    if (category === "ride") teamBikeElevationMeters += row.elevationMeters;
+    else if (category === "run") teamRunElevationMeters += row.elevationMeters;
   }
-  const leaderboard = [...leaderboardByUser.values()].sort((a, b) =>
-    rankByElevation
-      ? b.elevationMeters - a.elevationMeters || b.distanceMeters - a.distanceMeters
-      : b.distanceMeters - a.distanceMeters,
-  );
+
+  const leaderboard = buildLeaderboard(rows, usersById, sport, rankByElevation);
+
+  // "Share top 5" covers one discipline at a time, so it only exists on the Run, Bike and Swim tabs.
+  const shareSport = isShareSport(sport) ? sport : null;
+  let shareCaption = "";
+  let shareImageUrl = "";
+  let shareTitle = "";
+  if (shareSport) {
+    const headerList = await headers();
+    const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "";
+    const proto = headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const shareByElevation = canShareByElevation(shareSport) && rankByElevation;
+    shareCaption = buildCaption({
+      sport: shareSport,
+      byElevation: shareByElevation,
+      phrase: periodPhrase(range, offset, label),
+      entries: leaderboard,
+      members: usersById,
+      siteUrl: `${proto}://${host}`,
+    });
+    shareImageUrl = `/api/share/top5?range=${range}&sport=${shareSport}${byParam}&offset=${offset}`;
+    shareTitle = `${cardTitle(shareSport, shareByElevation)} - ${label}`;
+  }
 
   const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
   const teamActivityCount = leaderboard.reduce((sum, entry) => sum + entry.count, 0);
@@ -246,33 +249,47 @@ export default async function DashboardPage({
               ))}
             </div>
           </div>
-          {canRankByElevation && (
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-gray-500">Rank by:</span>
-              {[
-                {
-                  key: "distance",
-                  label: "Distance",
-                  href: `/dashboard?range=${range}&sport=${sport}&offset=${offset}`,
-                },
-                {
-                  key: "elevation",
-                  label: "Climbing",
-                  href: `/dashboard?range=${range}&sport=${sport}&by=elevation&offset=${offset}`,
-                },
-              ].map((o) => (
-                <Link
-                  key={o.key}
-                  href={o.href}
-                  className={`rounded-full border px-3 py-1 ${
-                    (o.key === "elevation") === rankByElevation
-                      ? "border-orange-600 bg-orange-600 text-white"
-                      : "border-gray-300 text-gray-600"
-                  }`}
-                >
-                  {o.label}
-                </Link>
-              ))}
+          {shareSport && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+              {canRankByElevation ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-gray-500">Rank by:</span>
+                  {[
+                    {
+                      key: "distance",
+                      label: "Distance",
+                      href: `/dashboard?range=${range}&sport=${sport}&offset=${offset}`,
+                    },
+                    {
+                      key: "elevation",
+                      label: "Climbing",
+                      href: `/dashboard?range=${range}&sport=${sport}&by=elevation&offset=${offset}`,
+                    },
+                  ].map((o) => (
+                    <Link
+                      key={o.key}
+                      href={o.href}
+                      className={`rounded-full border px-3 py-1 ${
+                        (o.key === "elevation") === rankByElevation
+                          ? "border-orange-600 bg-orange-600 text-white"
+                          : "border-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {o.label}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <span />
+              )}
+              {leaderboard.length > 0 && (
+                <ShareTop5
+                  imageUrl={shareImageUrl}
+                  caption={shareCaption}
+                  filename={`landshark-top5-${sport}-${range}.png`}
+                  title={shareTitle}
+                />
+              )}
             </div>
           )}
           <ol className="divide-y divide-gray-200 overflow-hidden rounded-lg border bg-white">

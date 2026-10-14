@@ -21,6 +21,12 @@ leaderboard, and give each other in-app kudos. Built with Next.js
   rate-limited background job, staggered across users, not a bulk sync.
 - The dashboard totals each period in the database (grouped by member and sport) rather than loading every activity,
   and the recent activity feed shows 10 at a time with Newer/Older paging.
+- **Share top 5:** on the dashboard's Run, Bike and Swim leaderboard tabs, a **Share top 5** button opens a preview of a
+  1080x1350 card (logo, the top five with first name and last initial, profile photos or initials, and the distance, or
+  feet climbed when ranking by Climbing) plus a Facebook caption. Members save or share the image, copy the caption and
+  paste both into a new post, since Facebook can't be pre-filled from a website. The image comes from
+  `/api/share/top5` (members only, drawn by Next's `ImageResponse` with the bundled Liberation Sans Bold font in
+  `public/fonts`, OFL licensed); photos are fetched server side from https hosts only and fall back to initials.
 - The dashboard aggregates stored activities into a leaderboard
   (this week / this month / all time) and a recent activity feed where
   members can give kudos.
