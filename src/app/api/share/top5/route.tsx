@@ -1,5 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
-import { ImageResponse } from "next/og";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -7,20 +8,30 @@ import { isValidRange, parseOffset, periodLabel, rangeWindow, supportsOffset } f
 import { fetchAvatarDataUrl } from "@/lib/avatarFetch";
 import { buildLeaderboard, shortName, type GroupRow } from "@/lib/leaderboard";
 import { canShareByElevation, cardTitle, entryValueText, isShareSport, periodTitle } from "@/lib/shareTop5";
-import { CARD_FONT, CARD_HEIGHT, CARD_WIDTH, initialsOf, Top5Card, type CardRow } from "@/lib/shareCard";
+import { cardSafeName, initialsOf, type CardRow } from "@/lib/shareCard";
+import { renderShareCard } from "@/lib/renderShareCard";
 
 const ASSET_TIMEOUT_MS = 4000;
 
+/** A file from /public, fetched from our own site, falling back to disk; null (with a log line) if both fail. */
 async function loadAsset(path: string, origin: string): Promise<ArrayBuffer | null> {
   try {
     const res = await fetch(new URL(path, origin), { signal: AbortSignal.timeout(ASSET_TIMEOUT_MS) });
-    return res.ok ? await res.arrayBuffer() : null;
-  } catch {
+    if (res.ok) return await res.arrayBuffer();
+    console.warn(`Share card: ${path} returned ${res.status} from ${origin}`);
+  } catch (error) {
+    console.warn(`Share card: couldn't fetch ${path} from ${origin}`, error);
+  }
+  try {
+    const bytes = await readFile(join(process.cwd(), "public", path));
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  } catch (error) {
+    console.warn(`Share card: couldn't read ${path} from disk`, error);
     return null;
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handle(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -72,7 +83,7 @@ export async function GET(req: NextRequest) {
   const logo = logoBytes ? `data:image/png;base64,${Buffer.from(logoBytes).toString("base64")}` : null;
 
   const cardRows: CardRow[] = top.map((entry, i) => {
-    const name = shortName(members.get(entry.userId));
+    const name = cardSafeName(shortName(members.get(entry.userId)));
     return {
       rank: i + 1,
       name,
@@ -82,19 +93,35 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return new ImageResponse(
-    <Top5Card
-      title={cardTitle(sport, byElevation)}
-      subtitle={periodTitle(range, label)}
-      rows={cardRows}
-      logo={logo}
-      siteHost={origin.replace(/^https?:\/\//, "")}
-    />,
-    {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-      fonts: font ? [{ name: CARD_FONT, data: font, weight: 700, style: "normal" }] : undefined,
-      headers: { "Cache-Control": "private, max-age=60" },
-    },
-  );
+  try {
+    const { png, degraded } = await renderShareCard({
+      title: cardTitle(sport, byElevation),
+      subtitle: periodTitle(range, label),
+      rows: cardRows,
+      logo,
+      font,
+      siteHost: origin.replace(/^https?:\/\//, ""),
+    });
+    return new Response(png, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": degraded ? "no-store" : "private, max-age=60",
+        ...(degraded ? { "X-Share-Card-Degraded": degraded } : {}),
+      },
+    });
+  } catch (error) {
+    // Shown (briefly) in the share dialog so a failure can be diagnosed from a screenshot.
+    const detail = (error instanceof Error ? error.message : String(error)).slice(0, 160);
+    return NextResponse.json({ error: "Couldn't draw the card", detail }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    return await handle(req);
+  } catch (error) {
+    console.error("Share card route failed", error);
+    const detail = (error instanceof Error ? error.message : String(error)).slice(0, 160);
+    return NextResponse.json({ error: "Couldn't draw the card", detail }, { status: 500 });
+  }
 }

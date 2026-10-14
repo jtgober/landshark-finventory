@@ -15,10 +15,24 @@ export interface CardRow {
 
 const RANK_COLORS = ["#d97706", "#6b7280", "#b45309", "#ea580c", "#ea580c"];
 
+/**
+ * A name safe to draw on the card. The renderer fetches emoji and other scripts from the internet
+ * when the bundled font lacks them, and a failed fetch breaks the whole image, so keep only Latin,
+ * Greek and Cyrillic letters, digits and common name punctuation.
+ */
+export function cardSafeName(name: string): string {
+  const kept = name
+    .normalize("NFC")
+    .replace(/[^\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}\p{N}\s.'\u2019,-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return kept || "Club Member";
+}
+
 export function initialsOf(name: string): string {
   const parts = name.replace(/\./g, "").trim().split(/\s+/).filter(Boolean);
   const letters = parts.length > 1 ? parts[0][0] + parts[1][0] : (parts[0] ?? "?").slice(0, 2);
-  return letters.toUpperCase();
+  return letters.toUpperCase() || "?";
 }
 
 export function Top5Card({
