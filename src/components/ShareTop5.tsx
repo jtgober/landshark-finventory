@@ -12,11 +12,13 @@ export default function ShareTop5({
   caption,
   filename,
   title,
+  buttonLabel = "Share top 5",
 }: {
   imageUrl: string;
   caption: string;
   filename: string;
   title: string;
+  buttonLabel?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -120,7 +122,7 @@ export default function ShareTop5({
         onClick={openDialog}
         className="min-h-11 rounded-full border border-orange-600 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-50"
       >
-        Share top 5
+        {buttonLabel}
       </button>
       <dialog
         ref={dialogRef}

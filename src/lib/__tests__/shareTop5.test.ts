@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildLeaderboard, shortName, type GroupRow, type MemberInfo } from "../leaderboard";
-import { buildCaption, cardTitle, canShareByElevation, isShareSport, periodPhrase, periodTitle } from "../shareTop5";
+import {
+  buildAllCaption,
+  buildCaption,
+  cardTitle,
+  canShareByElevation,
+  isShareSport,
+  periodPhrase,
+  periodTitle,
+} from "../shareTop5";
 
 const MILE = 1609.344;
 const member = (firstName: string | null, lastName: string | null): MemberInfo => ({
@@ -171,5 +179,73 @@ describe("buildCaption", () => {
     expect(caption).toContain("Landshark bike climbers this month!");
     expect(caption).toContain("1. Jon G. - 3,281 ft");
     expect(caption).toContain("2. Corey A. - 1,312 ft");
+  });
+});
+
+describe("buildAllCaption", () => {
+  const members = new Map(
+    ["a", "b", "c", "d", "e", "f"].map((id, i) => [
+      id,
+      member(["Jon", "Corey", "Sam", "Pat", "Kay", "Extra"][i], "Person"),
+    ]),
+  );
+  const rowsFor = (type: string, miles: number[]) => miles.map((m, i) => row("abcdef"[i], type, m));
+  const leadersFrom = (rows: GroupRow[]) => ({
+    run: buildLeaderboard(rows, members, "run", false),
+    ride: buildLeaderboard(rows, members, "ride", false),
+    swim: buildLeaderboard(rows, members, "swim", false),
+  });
+
+  it("lists each discipline's top five under a heading, then the cheer and link", () => {
+    const rows = [
+      ...rowsFor("Run", [30, 25, 20, 15, 10, 5]),
+      ...rowsFor("Ride", [100, 90, 80]),
+      ...rowsFor("Swim", [4, 3]),
+    ];
+    const caption = buildAllCaption({
+      phrase: "this week",
+      leaders: leadersFrom(rows),
+      members,
+      siteUrl: "https://example.com",
+    });
+    expect(caption).toBe(
+      [
+        "Landshark leaders this week!",
+        "",
+        "Run",
+        "1. Jon P. - 30.0 mi",
+        "2. Corey P. - 25.0 mi",
+        "3. Sam P. - 20.0 mi",
+        "4. Pat P. - 15.0 mi",
+        "5. Kay P. - 10.0 mi",
+        "",
+        "Bike",
+        "1. Jon P. - 100.0 mi",
+        "2. Corey P. - 90.0 mi",
+        "3. Sam P. - 80.0 mi",
+        "",
+        "Swim",
+        "1. Jon P. - 4.0 mi",
+        "2. Corey P. - 3.0 mi",
+        "",
+        "Nice work, Landsharks!",
+        "",
+        "See the full leaderboard: https://example.com",
+      ].join("\n"),
+    );
+    expect(caption).not.toContain("Extra P.");
+  });
+
+  it("leaves out a discipline nobody did", () => {
+    const caption = buildAllCaption({
+      phrase: "in 2025",
+      leaders: leadersFrom(rowsFor("Run", [10, 5])),
+      members,
+      siteUrl: "https://example.com",
+    });
+    expect(caption).toContain("Landshark leaders in 2025!");
+    expect(caption).toContain("Run\n1. Jon P. - 10.0 mi");
+    expect(caption).not.toContain("Bike");
+    expect(caption).not.toContain("Swim");
   });
 });

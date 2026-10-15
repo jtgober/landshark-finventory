@@ -64,3 +64,31 @@ export function buildCaption(opts: {
 }
 
 export { valueText as entryValueText };
+
+const SECTION_HEADINGS: Record<ShareSport, string> = { run: "Run", ride: "Bike", swim: "Swim" };
+
+/** The caption for the all-disciplines card: one list per discipline that has activity. */
+export function buildAllCaption(opts: {
+  phrase: string;
+  leaders: Record<ShareSport, LeaderboardEntry[]>;
+  members: Map<string, MemberInfo>;
+  siteUrl: string;
+}): string {
+  const { phrase, leaders, members, siteUrl } = opts;
+  const blocks: string[] = [`Landshark leaders ${phrase}!`];
+  for (const sport of SHARE_SPORTS) {
+    const entries = leaders[sport].slice(0, 5);
+    if (entries.length === 0) continue;
+    blocks.push(
+      [
+        SECTION_HEADINGS[sport],
+        ...entries.map((e, i) => `${i + 1}. ${shortName(members.get(e.userId))} - ${valueText(e, false)}`),
+      ].join("\n"),
+    );
+  }
+  blocks.push(CLOSING_LINE, `See the full leaderboard: ${siteUrl}`);
+  return blocks.join("\n\n");
+}
+
+export const ALL_DISCIPLINES_TITLE = "Top 5 by Discipline";
+export { SECTION_HEADINGS };

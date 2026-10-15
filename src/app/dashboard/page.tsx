@@ -8,7 +8,15 @@ import { formatDistance, formatDuration, formatElevation } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
 import { isValidRange, parseOffset, periodLabel, PRIMARY_RANGES, rangeWindow, supportsOffset } from "@/lib/dateRange";
 import { buildLeaderboard, type GroupRow } from "@/lib/leaderboard";
-import { buildCaption, canShareByElevation, cardTitle, isShareSport, periodPhrase } from "@/lib/shareTop5";
+import {
+  ALL_DISCIPLINES_TITLE,
+  buildAllCaption,
+  buildCaption,
+  canShareByElevation,
+  cardTitle,
+  isShareSport,
+  periodPhrase,
+} from "@/lib/shareTop5";
 import KudosButton from "@/components/KudosButton";
 import ShareTop5 from "@/components/ShareTop5";
 import NavBar from "@/components/NavBar";
@@ -101,26 +109,41 @@ export default async function DashboardPage({
 
   const leaderboard = buildLeaderboard(rows, usersById, sport, rankByElevation);
 
-  // "Share top 5" covers one discipline at a time, so it only exists on the Run, Bike and Swim tabs.
+  // "Share top 5" covers one discipline at a time on the Run, Bike and Swim tabs; the Total tab shares all three.
   const shareSport = isShareSport(sport) ? sport : null;
   let shareCaption = "";
   let shareImageUrl = "";
   let shareTitle = "";
-  if (shareSport) {
+  let showAllShare = false;
+  if (shareSport || sport === "total") {
     const headerList = await headers();
     const host = headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "";
     const proto = headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-    const shareByElevation = canShareByElevation(shareSport) && rankByElevation;
-    shareCaption = buildCaption({
-      sport: shareSport,
-      byElevation: shareByElevation,
-      phrase: periodPhrase(range, offset, label),
-      entries: leaderboard,
-      members: usersById,
-      siteUrl: `${proto}://${host}`,
-    });
-    shareImageUrl = `/api/share/top5?range=${range}&sport=${shareSport}${byParam}&offset=${offset}`;
-    shareTitle = `${cardTitle(shareSport, shareByElevation)} - ${label}`;
+    const siteUrl = `${proto}://${host}`;
+    const phrase = periodPhrase(range, offset, label);
+    if (shareSport) {
+      const shareByElevation = canShareByElevation(shareSport) && rankByElevation;
+      shareCaption = buildCaption({
+        sport: shareSport,
+        byElevation: shareByElevation,
+        phrase,
+        entries: leaderboard,
+        members: usersById,
+        siteUrl,
+      });
+      shareImageUrl = `/api/share/top5?range=${range}&sport=${shareSport}${byParam}&offset=${offset}`;
+      shareTitle = `${cardTitle(shareSport, shareByElevation)} - ${label}`;
+    } else {
+      const leaders = {
+        run: buildLeaderboard(rows, usersById, "run", false),
+        ride: buildLeaderboard(rows, usersById, "ride", false),
+        swim: buildLeaderboard(rows, usersById, "swim", false),
+      };
+      showAllShare = leaders.run.length + leaders.ride.length + leaders.swim.length > 0;
+      shareCaption = buildAllCaption({ phrase, leaders, members: usersById, siteUrl });
+      shareImageUrl = `/api/share/top5?range=${range}&sport=all&offset=${offset}`;
+      shareTitle = `${ALL_DISCIPLINES_TITLE} - ${label}`;
+    }
   }
 
   const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
@@ -249,6 +272,17 @@ export default async function DashboardPage({
               ))}
             </div>
           </div>
+          {showAllShare && (
+            <div className="mb-3 flex justify-end text-sm">
+              <ShareTop5
+                imageUrl={shareImageUrl}
+                caption={shareCaption}
+                filename={`landshark-top5-all-${range}.png`}
+                title={shareTitle}
+                buttonLabel="Share all disciplines"
+              />
+            </div>
+          )}
           {shareSport && (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
               {canRankByElevation ? (

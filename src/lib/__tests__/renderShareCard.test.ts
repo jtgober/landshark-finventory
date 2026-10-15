@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { renderShareCard, type RenderInput } from "../renderShareCard";
+import { renderCombinedCard, renderShareCard, type CombinedRenderInput, type RenderInput } from "../renderShareCard";
 import { cardSafeName, initialsOf, type CardRow } from "../shareCard";
 
 // A real WebP file labelled as a JPEG: exactly what made the renderer throw "Invalid JPEG".
@@ -81,6 +81,49 @@ describe("renderShareCard", () => {
 
   it("draws without the custom font or logo", async () => {
     const result = await renderShareCard(input([row(1), row(2)], { font: null, logo: null }));
+    expect(isPng(result.png)).toBe(true);
+  });
+});
+
+describe("renderCombinedCard", () => {
+  const rows = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ rank: i + 1, name: `Member ${i + 1}`, value: "10.0 mi", initials: "M" }));
+  const combined = (extra: Partial<CombinedRenderInput> = {}): CombinedRenderInput => ({
+    title: "Top 5 by Discipline",
+    subtitle: "This Week",
+    sections: [
+      { label: "RUN", rows: rows(5) },
+      { label: "BIKE", rows: rows(5) },
+      { label: "SWIM", rows: rows(5) },
+    ],
+    logo: null,
+    font,
+    siteHost: "example.app",
+    ...extra,
+  });
+
+  it("draws one PNG with all three disciplines", async () => {
+    const result = await renderCombinedCard(combined());
+    expect(result.degraded).toBeNull();
+    expect(isPng(result.png)).toBe(true);
+    expect(result.png.byteLength).toBeGreaterThan(5000);
+  });
+
+  it("copes with empty and short disciplines", async () => {
+    const result = await renderCombinedCard(
+      combined({
+        sections: [
+          { label: "RUN", rows: rows(2) },
+          { label: "BIKE", rows: [] },
+          { label: "SWIM", rows: rows(1) },
+        ],
+      }),
+    );
+    expect(isPng(result.png)).toBe(true);
+  });
+
+  it("draws without the custom font or logo", async () => {
+    const result = await renderCombinedCard(combined({ font: null, logo: null }));
     expect(isPng(result.png)).toBe(true);
   });
 });

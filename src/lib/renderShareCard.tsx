@@ -1,5 +1,14 @@
 import { ImageResponse } from "next/og";
-import { CARD_FONT, CARD_HEIGHT, CARD_WIDTH, Top5Card, type CardRow } from "./shareCard";
+import type { ReactElement } from "react";
+import {
+  CARD_FONT,
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  CombinedCard,
+  Top5Card,
+  type CardRow,
+  type CombinedSection,
+} from "./shareCard";
 
 export interface RenderInput {
   title: string;
@@ -16,8 +25,20 @@ export interface RenderedCard {
   degraded: "no-photos" | "plain" | null;
 }
 
-async function drawOnce(input: RenderInput): Promise<ArrayBuffer> {
-  const response = new ImageResponse(
+async function draw(element: ReactElement, font: ArrayBuffer | null): Promise<ArrayBuffer> {
+  const response = new ImageResponse(element, {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    fonts: font ? [{ name: CARD_FONT, data: font, weight: 700, style: "normal" }] : undefined,
+  });
+  // Rendering is lazy: errors only surface when the body is read, so read it here where we can catch them.
+  const png = await response.arrayBuffer();
+  if (png.byteLength === 0) throw new Error("renderer returned an empty image");
+  return png;
+}
+
+function drawOnce(input: RenderInput): Promise<ArrayBuffer> {
+  return draw(
     <Top5Card
       title={input.title}
       subtitle={input.subtitle}
@@ -25,16 +46,8 @@ async function drawOnce(input: RenderInput): Promise<ArrayBuffer> {
       logo={input.logo}
       siteHost={input.siteHost}
     />,
-    {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-      fonts: input.font ? [{ name: CARD_FONT, data: input.font, weight: 700, style: "normal" }] : undefined,
-    },
+    input.font,
   );
-  // Rendering is lazy: errors only surface when the body is read, so read it here where we can catch them.
-  const png = await response.arrayBuffer();
-  if (png.byteLength === 0) throw new Error("renderer returned an empty image");
-  return png;
 }
 
 /**
@@ -57,6 +70,45 @@ export async function renderShareCard(input: RenderInput): Promise<RenderedCard>
     } catch (error) {
       lastError = error;
       console.error(`Share card render failed (${degraded ?? "full"} version)`, error);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+export interface CombinedRenderInput {
+  title: string;
+  subtitle: string;
+  sections: CombinedSection[];
+  logo: string | null;
+  font: ArrayBuffer | null;
+  siteHost: string;
+}
+
+/** The all-disciplines card, with a plain fallback (no logo, built-in font) if the full version fails. */
+export async function renderCombinedCard(
+  input: CombinedRenderInput,
+): Promise<{ png: ArrayBuffer; degraded: "plain" | null }> {
+  const attempts: ["plain" | null, CombinedRenderInput][] = [
+    [null, input],
+    ["plain", { ...input, logo: null, font: null }],
+  ];
+  let lastError: unknown;
+  for (const [degraded, attempt] of attempts) {
+    try {
+      const png = await draw(
+        <CombinedCard
+          title={attempt.title}
+          subtitle={attempt.subtitle}
+          sections={attempt.sections}
+          logo={attempt.logo}
+          siteHost={attempt.siteHost}
+        />,
+        attempt.font,
+      );
+      return { png, degraded };
+    } catch (error) {
+      lastError = error;
+      console.error(`Combined share card render failed (${degraded ?? "full"} version)`, error);
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));

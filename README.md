@@ -21,6 +21,9 @@ leaderboard, and give each other in-app kudos. Built with Next.js
   rate-limited background job, staggered across users, not a bulk sync.
 - The dashboard totals each period in the database (grouped by member and sport) rather than loading every activity,
   and the recent activity feed shows 10 at a time with Newer/Older paging.
+- **Share all disciplines:** on the dashboard's Total tab, a **Share all disciplines** button makes one 1080x1350 card
+  with the top 5 for Run, Bike and Swim stacked together (initials instead of photos, to fit fifteen rows) and one
+  caption with all three lists. It uses the same `/api/share/top5` route with `sport=all`.
 - **Share top 5:** on the dashboard's Run, Bike and Swim leaderboard tabs, a **Share top 5** button opens a preview of a
   1080x1350 card (logo, the top five with first name and last initial, profile photos or initials, and the distance, or
   feet climbed when ranking by Climbing) plus a Facebook caption. Members save or share the image, copy the caption and
