@@ -273,7 +273,7 @@ export default async function DashboardPage({
             </div>
           </div>
           {showAllShare && (
-            <div className="mb-3 flex justify-end text-sm">
+            <div className="mb-3 flex text-sm">
               <ShareTop5
                 imageUrl={shareImageUrl}
                 caption={shareCaption}
@@ -284,7 +284,7 @@ export default async function DashboardPage({
             </div>
           )}
           {shareSport && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
               {canRankByElevation ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-gray-500">Rank by:</span>
@@ -313,9 +313,7 @@ export default async function DashboardPage({
                     </Link>
                   ))}
                 </div>
-              ) : (
-                <span />
-              )}
+              ) : null}
               {leaderboard.length > 0 && (
                 <ShareTop5
                   imageUrl={shareImageUrl}
