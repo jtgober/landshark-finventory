@@ -249,6 +249,15 @@ export default async function AdminMetricsPage({ searchParams }: { searchParams:
 
         <section className="mb-6">
           <h2 className="mb-3 text-lg font-semibold">Export ({year})</h2>
+          <a
+            href={`/api/admin/export/monthly?year=${year}`}
+            className="mb-3 block rounded-lg border-2 border-orange-600 bg-orange-50 px-4 py-3 hover:bg-orange-100"
+          >
+            <span className="block text-sm font-semibold text-orange-800">Monthly totals, January to December (Excel)</span>
+            <span className="block text-xs text-orange-700">
+              One .xlsx workbook for {year}: club totals by month, each member by month, and the Total row.
+            </span>
+          </a>
           <p className="mb-3 text-sm text-gray-500">CSV files that open directly in Excel or Google Sheets. Contains member names, so handle accordingly.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {([["members", "Members: yearly summary"], ["activities", "Activities: every activity"], ["races", "Races: ranked by popularity"], ["race-signups", "Race signups: one row per member"]] as const).map(([type, label]) => (

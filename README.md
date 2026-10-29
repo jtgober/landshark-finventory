@@ -117,6 +117,10 @@ Admins get an **Admin** link in the nav bar with:
 - **CSV exports** (members, activities, races, race signups) for any year. Files open directly in
   Excel or Google Sheets. They contain member names but never OAuth tokens or Strava athlete IDs, and
   text that looks like a spreadsheet formula is neutralized.
+- **Monthly totals workbook** (`/api/admin/export/monthly?year=YYYY`, the first button under Export on the metrics page):
+  a real Excel (.xlsx) file with January to December club totals (activities, active members, distance split into run,
+  bike, swim and other, moving hours, elevation with run and bike climbing) and a Total row, a sheet with every member's
+  distance by month, and a notes sheet. Totals are Excel formulas. Built with `write-excel-file`.
 - **Activity log** (`/admin/activity`): members in join order (newest first) with join time, city, and how many
   activities have synced, plus joined-in-7/30-days counts. Read from `User.createdAt`, so it needs no extra table. Members whose saved Strava scopes lack `activity:read` (they unticked the
   permission on Strava's consent screen, so nothing they record can sync) get a warning badge and a summary banner.
