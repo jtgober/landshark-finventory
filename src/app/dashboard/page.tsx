@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDistance, formatDuration, formatElevation } from "@/lib/format";
+import { formatDistance, formatDuration, formatElevation, formatHours } from "@/lib/format";
 import { categorizeSport, SPORT_TABS } from "@/lib/sport";
 import { isValidRange, parseOffset, periodLabel, PRIMARY_RANGES, rangeWindow, supportsOffset } from "@/lib/dateRange";
 import { buildLeaderboard, type GroupRow } from "@/lib/leaderboard";
@@ -98,15 +98,6 @@ export default async function DashboardPage({
     count: g._count._all,
   }));
 
-  // Elevation tiles always cover the whole range, whichever sport tab is selected.
-  let teamBikeElevationMeters = 0;
-  let teamRunElevationMeters = 0;
-  for (const row of rows) {
-    const category = categorizeSport(row.sportType);
-    if (category === "ride") teamBikeElevationMeters += row.elevationMeters;
-    else if (category === "run") teamRunElevationMeters += row.elevationMeters;
-  }
-
   const leaderboard = buildLeaderboard(rows, usersById, sport, rankByElevation);
 
   // "Share top 5" covers one discipline at a time on the Run, Bike and Swim tabs; the Total tab shares all three.
@@ -149,6 +140,9 @@ export default async function DashboardPage({
   const teamDistanceMeters = leaderboard.reduce((sum, entry) => sum + entry.distanceMeters, 0);
   const teamActivityCount = leaderboard.reduce((sum, entry) => sum + entry.count, 0);
   const teamParticipantCount = leaderboard.length;
+  // Like the distance total, these follow the selected sport tab (all sports on Total).
+  const teamElevationMeters = leaderboard.reduce((sum, entry) => sum + entry.elevationMeters, 0);
+  const teamMovingSeconds = leaderboard.reduce((sum, entry) => sum + entry.movingTimeSeconds, 0);
 
   const recentHref = (p: number) =>
     `/dashboard?range=${range}&sport=${sport}${byParam}&offset=${offset}&page=${p}#recent`;
@@ -245,12 +239,12 @@ export default async function DashboardPage({
               <p className="text-xs text-orange-700">members active</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-orange-900">{formatElevation(teamBikeElevationMeters)}</p>
-              <p className="text-xs text-orange-700">bike elevation</p>
+              <p className="text-2xl font-bold text-orange-900">{formatElevation(teamElevationMeters)}</p>
+              <p className="text-xs text-orange-700">total elevation</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-orange-900">{formatElevation(teamRunElevationMeters)}</p>
-              <p className="text-xs text-orange-700">run elevation</p>
+              <p className="text-2xl font-bold text-orange-900">{formatHours(teamMovingSeconds)}</p>
+              <p className="text-xs text-orange-700">total hours</p>
             </div>
           </div>
         </section>

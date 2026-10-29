@@ -9,6 +9,13 @@ export function formatDuration(seconds: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
+/** Total time as hours for team stats: "42.5 hrs" under 100 hours, "1,276 hrs" above. */
+export function formatHours(seconds: number): string {
+  const hours = Math.max(0, seconds) / 3600;
+  if (hours < 100) return `${hours.toFixed(1)} hrs`;
+  return `${Math.round(hours).toLocaleString("en-US")} hrs`;
+}
+
 export function formatElevation(meters: number): string {
   const feet = Math.round(meters * 3.28084);
   return `${feet.toLocaleString("en-US")} ft`;
