@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import QrCode from "@/components/QrCode";
 import type { InstallState } from "@/components/useInstallPrompt";
 import { manualInstallSteps } from "@/lib/installApp";
+import { siteSharePayload } from "@/lib/shareSite";
 
 /** A "share the club site" dialog: QR code, link to copy or share, and how to put the app on a phone. */
 export default function ShareSiteDialog({
@@ -53,11 +54,7 @@ export default function ShareSiteDialog({
 
   async function shareLink() {
     try {
-      await navigator.share({
-        title: "Louisville Landsharks",
-        text: "Join the Louisville Landsharks club site and connect your Strava.",
-        url,
-      });
+      await navigator.share(siteSharePayload(url));
     } catch (err) {
       if ((err as DOMException)?.name !== "AbortError")
         setMessage("Couldn't open the share sheet. Copy the link instead.");
