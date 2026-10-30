@@ -189,3 +189,21 @@ model AthleteYearSummary {
   @@unique([userId, year])
   @@index([year])
 }
+
+// Club-wide yearly trophies ("Team Landshark"). Definitions live in code (src/lib/teamTrophies.ts); one row per
+// year and trophy records the highest tier the team has reached. Never lowered. Every member who logged an
+// activity in that year receives the trophy; that is worked out when it is read, so there is no per-member table.
+model TeamTrophyAward {
+  id String @id @default(cuid())
+
+  year Int
+  key  String
+  tier BadgeTier
+
+  bronzeAt DateTime
+  silverAt DateTime?
+  goldAt   DateTime?
+
+  @@unique([year, key])
+  @@index([year])
+}

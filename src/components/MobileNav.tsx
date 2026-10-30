@@ -9,6 +9,7 @@ import { useInstallPrompt } from "@/components/useInstallPrompt";
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/members", label: "Members" },
+  { href: "/team", label: "Team" },
   { href: "/races", label: "Races" },
 ];
 

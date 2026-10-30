@@ -365,3 +365,27 @@ export function YearlyMedal({
     </svg>
   );
 }
+
+/** Trophy cup for a club-wide Team Landshark trophy. `tier` null renders it locked. */
+export function TeamTrophyCup({ tier, year, size = 96 }: { tier: BadgeTier | null; year?: number; size?: number }) {
+  const m = METALS[tier ? metalForTier(tier) : "locked"];
+  return (
+    <svg viewBox="0 0 120 150" width={size} height={(size * 150) / 120} aria-hidden="true" className="shrink-0">
+      <path d="M30 34 C6 34 6 74 38 78" fill="none" stroke={m.rim} strokeWidth="7" strokeLinecap="round" />
+      <path d="M90 34 C114 34 114 74 82 78" fill="none" stroke={m.rim} strokeWidth="7" strokeLinecap="round" />
+      <rect x="54" y="92" width="12" height="22" fill={m.rim} />
+      <rect x="34" y="124" width="52" height="14" rx="3" fill={m.rim} />
+      <rect x="44" y="112" width="32" height="14" rx="2" fill={m.face} />
+      <path d="M26 24 H94 V54 C94 80 76 94 60 94 C44 94 26 80 26 54 Z" fill={m.rim} />
+      <path d="M31 28 H89 V54 C89 77 74 89 60 89 C46 89 31 77 31 54 Z" fill={m.face} />
+      <path d="M31 28 H50 V80 C38 74 31 66 31 54 Z" fill={m.highlight} opacity="0.55" />
+      <path d="M60 38 C70 46 74 54 72 66 C68 62 64 60 60 60 C56 60 52 62 48 66 C46 54 50 46 60 38 Z" fill={m.ink} />
+      <path d="M44 72 Q52 66 60 72 T76 72" fill="none" stroke={m.ink} strokeWidth="3" strokeLinecap="round" />
+      {year !== undefined && (
+        <text x="60" y="134" textAnchor="middle" fontSize="9" fontWeight="700" fill={m.face} fontFamily="sans-serif">
+          {year}
+        </text>
+      )}
+    </svg>
+  );
+}

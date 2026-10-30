@@ -160,12 +160,37 @@ trophy a medal on a ribbon, drawn as inline SVG in `src/components/BadgeArt.tsx`
 - Awards are never revoked, even if Strava activities are later deleted. Only activity synced since a
   member connected counts (there is no backfill).
 
+### Team Landshark trophies
+Eight club-wide trophies, awarded for each calendar year starting in **2027**. **Everyone who logs at least one
+activity in the year receives every trophy the team earns**, in bronze, silver or gold, and each trophy upgrades as
+the team's numbers grow. Like the other trophies they are never taken away. Definitions and thresholds live in
+`src/lib/teamTrophies.ts` (change the numbers there, then run **Recompute trophies**):
+
+| Trophy | Bronze / silver / gold |
+| --- | --- |
+| Around the World (team miles) | 24,901 / 49,802 / 74,703 mi |
+| 10,000 Hour Club (moving time) | 5,000 / 7,500 / 10,000 hrs |
+| Everest Expedition (climbing) | 25 / 50 / 75 Everests (29,032 ft each) |
+| Full Roster (months in which 80% of the members, at least 5, were active) | 6 / 9 / 12 months |
+| Triple Threat Team (different members with a week containing a swim, a ride and a run) | 10 / 20 / 25 members |
+| Cheer Squad (kudos given on the site) | 250 / 500 / 1,000 |
+| Pool Party (team swim miles) | 250 / 500 / 1,000 mi |
+| Bigger Than Last Year (distance growth over the year before) | +0.1% / +10% / +25% |
+
+Bigger Than Last Year compares against a previous year that had activity in all 12 months, so it first applies in
+2028. The **Team** page (`/team`) shows progress for any year; 2026 is shown as a preview and is never awarded.
+Only the team's tier per year is stored (`TeamTrophyAward`, one row per year and trophy); who holds it is worked out
+when read, from who logged an activity that year, so nobody needs a row of their own. Awards are checked after a
+Strava webhook, after a kudos, when someone opens the Team page, and by **Recompute trophies**. This adds a table, so
+run `npx prisma db push` (or `prisma migrate`) before relying on it; until then pages show no team trophies instead of
+failing.
+
 ### Year in review
 Every member has `/year-in-review/[year]`. From December 1 the dashboard links to it. Admins can open
 any member's review with `?member=<id>`.
 
 ### Tests
-`npm test` runs the unit tests for streaks, achievements, yearly badges, year summaries, CSV export and
+`npm test` runs the unit tests for streaks, achievements, yearly badges, team trophies, year summaries, CSV export and
 race ranking.
 
 ### Database migrations

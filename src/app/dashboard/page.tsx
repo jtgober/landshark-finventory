@@ -223,6 +223,14 @@ export default async function DashboardPage({
           </Link>
         )}
 
+        <Link
+          href="/team"
+          className="mb-4 flex min-h-11 items-center justify-between gap-2 rounded-lg border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-800"
+        >
+          <span>Team Landshark trophies: see how the club is doing this year</span>
+          <span aria-hidden="true">&rarr;</span>
+        </Link>
+
         <section className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-3 sm:mb-8 sm:p-6">
           <p className="mb-3 text-sm font-medium text-orange-800">Team Landshark — {label}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">

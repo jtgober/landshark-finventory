@@ -4,11 +4,13 @@ import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import NavBar from "@/components/NavBar";
-import { AchievementBadge, YearlyMedal } from "@/components/BadgeArt";
+import { AchievementBadge, TeamTrophyCup, YearlyMedal } from "@/components/BadgeArt";
 import { ACHIEVEMENTS, ACHIEVEMENT_FAMILIES } from "@/lib/achievements";
 import { computeAthleteStats } from "@/lib/athleteStats";
 import { metersToMiles } from "@/lib/units";
 import { formatProgress } from "@/lib/badgeProgress";
+import { TEAM_TROPHIES, TEAM_TROPHIES_START_YEAR } from "@/lib/teamTrophies";
+import { getMemberTeamTrophies } from "@/lib/teamTrophiesDb";
 import {
   TIERS,
   YEARLY_BADGE_LABELS,
@@ -37,7 +39,7 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
   });
   if (!member) notFound();
 
-  const [activities, earned, yearly, raceSignups] = await Promise.all([
+  const [activities, earned, yearly, raceSignups, teamYears] = await Promise.all([
     prisma.activity.findMany({
       where: { userId: id },
       select: {
@@ -51,6 +53,7 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
     prisma.userAchievement.findMany({ where: { userId: id }, select: { key: true, awardedAt: true } }),
     prisma.userYearlyBadge.findMany({ where: { userId: id } }),
     prisma.raceSignup.count({ where: { userId: id } }),
+    getMemberTeamTrophies(id),
   ]);
 
   const stats = computeAthleteStats(activities, { raceSignups, memberSince: member.createdAt });
@@ -197,6 +200,45 @@ export default async function MemberBadgesPage({ params }: { params: Promise<{ i
               </p>
             </section>
           )}
+        </div>
+
+        <h2 className="mb-1 mt-8 text-xl font-bold">Team Landshark trophies</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Club-wide goals we earn together. Log an activity in a year ({TEAM_TROPHIES_START_YEAR} and later) and you
+          share every trophy the team earns that year.{" "}
+          <Link href="/team" className="font-medium text-orange-700">
+            See the team&apos;s progress &rarr;
+          </Link>
+        </p>
+        <div className="space-y-4">
+          {teamYears.length === 0 && (
+            <section className="rounded-lg border bg-white p-4 text-sm text-gray-500">
+              {isSelf ? "You'll" : "They'll"} get these once {isSelf ? "you log" : "they log"} an activity in{" "}
+              {TEAM_TROPHIES_START_YEAR}.
+            </section>
+          )}
+          {teamYears.map(({ year, awards }) => {
+            const byKey = new Map(awards.map((a) => [a.key, a]));
+            return (
+              <section key={year} className="rounded-lg border bg-white p-4">
+                <h3 className="mb-3 font-semibold">{year}</h3>
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {TEAM_TROPHIES.map((def) => {
+                    const tier = byKey.get(def.key)?.tier ?? null;
+                    return (
+                      <li key={def.key} className="flex flex-col items-center text-center">
+                        <TeamTrophyCup tier={tier} year={year} size={84} />
+                        <p className={`mt-1 text-sm font-medium ${tier ? "text-gray-900" : "text-gray-400"}`}>
+                          {def.name}
+                        </p>
+                        <p className="text-xs text-gray-500">{tier ? TIER_LABEL[tier] : "Locked"}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       </main>
     </>

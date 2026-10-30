@@ -14,9 +14,15 @@ export default function RecomputeButton() {
         setMessage("Recompute failed.");
         return;
       }
-      const d = (await res.json()) as { members: number; achievementsCreated: number; yearlyBadgeWrites: number };
+      const d = (await res.json()) as {
+        members: number;
+        achievementsCreated: number;
+        yearlyBadgeWrites: number;
+        teamTrophyWrites: number;
+        teamTrophiesNote?: string;
+      };
       setMessage(
-        `Checked ${d.members} members: ${d.achievementsCreated} new trophies, ${d.yearlyBadgeWrites} yearly trophy updates.`,
+        `Checked ${d.members} members: ${d.achievementsCreated} new trophies, ${d.yearlyBadgeWrites} yearly trophy updates, ${d.teamTrophyWrites} team trophy updates.${d.teamTrophiesNote ? ` ${d.teamTrophiesNote}` : ""}`,
       );
     });
   };

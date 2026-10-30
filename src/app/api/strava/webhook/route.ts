@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchStravaActivity } from "@/lib/strava";
 import { awardForUser } from "@/lib/awardAchievements";
+import { awardCurrentYearQuietly } from "@/lib/teamTrophiesDb";
 
 /**
  * Strava's one-time webhook subscription handshake: it GETs this URL with
@@ -96,4 +97,7 @@ async function processEvent(event: StravaWebhookEvent) {
   } catch (err) {
     console.error("Failed to award achievements for user", user.id, err);
   }
+
+  // Team trophies read the whole club's year, so run them after the response has gone out.
+  after(() => awardCurrentYearQuietly());
 }
