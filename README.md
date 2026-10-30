@@ -101,6 +101,16 @@ Test locally with your browser's device toolbar (e.g. Chrome DevTools →
 Toggle device toolbar) at common widths like 375px (iPhone SE) and 390px
 (iPhone 12/13/14).
 
+### Sharing the site and installing the app
+**Share site** (in the hamburger menu, and inline in the nav on wider screens) opens a dialog with a QR code of the
+site address to scan, the link to copy, a **Share...** button on phones that have a share sheet, and a **Get the app**
+section. A website can't install itself without a tap, so there is no true auto-download: where Chrome or Edge allows
+it, an **Install app** button appears in the menu and the dialog (a root-layout script saves the browser's install
+event so it isn't missed); everywhere else the dialog shows the steps for iPhone (Safari, Add to Home Screen), Android
+and desktop. The QR code is drawn by `uqr` in `src/lib/qr.ts`; install logic is in `src/components/useInstallPrompt.ts`.
+Putting the app in the Play Store or App Store would need a paid developer account and a wrapper app, which this does
+not do.
+
 ## Admin, achievements and year in review
 
 ### Making the first admin
